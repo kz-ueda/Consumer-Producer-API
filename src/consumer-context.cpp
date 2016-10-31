@@ -374,7 +374,7 @@ Consumer::setContextOption(int optionName, Name optionValue)
         m_controller->start<nfd::StrategyChoiceUnsetCommand>(parameters,
                                                  bind(&Consumer::onStrategyChangeSuccess, this, _1,
                                                       "Successfully unset strategy choice"),
-                                                 bind(&Consumer::onStrategyChangeError, this, _1, _2,
+                                                 bind(&Consumer::onStrategyChangeError, this, _1,
                                                       "Failed to unset strategy choice"));
       }
       else
@@ -387,7 +387,7 @@ Consumer::setContextOption(int optionName, Name optionValue)
         m_controller->start<nfd::StrategyChoiceSetCommand>(parameters,
                                                bind(&Consumer::onStrategyChangeSuccess, this, _1,
                                                     "Successfully set strategy choice"),
-                                               bind(&Consumer::onStrategyChangeError, this, _1, _2,
+                                               bind(&Consumer::onStrategyChangeError, this, _1,
                                                     "Failed to set strategy choice"));
 
       }
@@ -777,7 +777,7 @@ Consumer::getContextOption(int optionName, shared_ptr<Face>& optionValue)
 {
   switch (optionName)
   {
-    case FACE:
+    case FACE_CONFIG:
       optionValue = m_face;
       return OPTION_FOUND;
     
@@ -799,12 +799,20 @@ Consumer::onStrategyChangeSuccess(const nfd::ControlParameters& commandSuccessRe
 }
 
 void
+Consumer::onStrategyChangeError(const nfd::ControlResponse& commandFailureResult, const std::string& message)
+{
+
+}
+
+/*
+void
 Consumer::onStrategyChangeError(uint32_t code, const std::string& error, const std::string& message)
 {
-  /*std::ostringstream os;
+  std::ostringstream os;
   os << message << ": " << error << " (code: " << code << ")";
-  throw Error(os.str());*/
+  throw Error(os.str());
 }
+*/
 
 void
 Consumer::consumeAll()

@@ -32,7 +32,7 @@
 #include "infomax-data-retrieval.hpp"
 
 #include <ndn-cxx/util/config-file.hpp>
-#include <ndn-cxx/management/nfd-controller.hpp>
+#include <ndn-cxx/mgmt/nfd/controller.hpp>
 
 namespace ndn {
 
@@ -197,8 +197,10 @@ private:
   void
   onStrategyChangeSuccess(const nfd::ControlParameters& commandSuccessResult, const std::string& message);
   
+//  void
+//  onStrategyChangeError(uint32_t code, const std::string& error, const std::string& message);
   void
-  onStrategyChangeError(uint32_t code, const std::string& error, const std::string& message);
+  onStrategyChangeError(const nfd::ControlResponse& commandFailResult, const std::string& message);
 
 private:
   // context inner state variables

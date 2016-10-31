@@ -126,7 +126,8 @@ Manifest::wireEncode(EncodingImpl<T>& blk) const
   for (std::list<Name>::const_reverse_iterator it = m_catalogueNames.rbegin();
                                 it != m_catalogueNames.rend(); ++it)
   {
-    size_t blockSize = prependBlock(blk, it->wireEncode());
+    //size_t blockSize = encoding::Encoder::prependBlock(blk, it->wireEncode());
+    size_t blockSize = blk.prependBlock(it->wireEncode());
     totalLength += blockSize;
     catalogueLength += blockSize;
   }

@@ -32,7 +32,7 @@ DataRetrievalProtocol::DataRetrievalProtocol(Context* context)
 void
 DataRetrievalProtocol::updateFace()
 {
-  m_context->getContextOption(FACE, m_face);
+  m_context->getContextOption(FACE_CONFIG, m_face);
 }
 
 bool

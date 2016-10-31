@@ -823,7 +823,7 @@ Producer::setContextOption(int optionName, Name optionValue)
         m_controller->start<nfd::StrategyChoiceUnsetCommand>(parameters,
                                                  bind(&Producer::onStrategyChangeSuccess, this, _1,
                                                       "Successfully unset strategy choice"),
-                                                 bind(&Producer::onStrategyChangeError, this, _1, _2,
+                                                 bind(&Producer::onStrategyChangeError, this, _1,
                                                       "Failed to unset strategy choice"));
       }
       else
@@ -836,7 +836,7 @@ Producer::setContextOption(int optionName, Name optionValue)
         m_controller->start<nfd::StrategyChoiceSetCommand>(parameters,
                                                bind(&Producer::onStrategyChangeSuccess, this, _1,
                                                     "Successfully set strategy choice"),
-                                               bind(&Producer::onStrategyChangeError, this, _1, _2,
+                                               bind(&Producer::onStrategyChangeError, this, _1,
                                                     "Failed to set strategy choice"));
 
       }
@@ -1199,7 +1199,7 @@ Producer::getContextOption(int optionName, shared_ptr<Face>& optionValue)
 {
   switch (optionName)
   {
-    case FACE:
+    case FACE_CONFIG:
       optionValue = m_face;
       return OPTION_FOUND;
     
@@ -1227,9 +1227,13 @@ Producer::onStrategyChangeSuccess(const nfd::ControlParameters& commandSuccessRe
 }
 
 void
+Producer::onStrategyChangeError(const nfd::ControlResponse& commandFailResult,
+                                const std::string& message)
+{}
+/*
+void
 Producer::onStrategyChangeError(uint32_t code, const std::string& error, const std::string& message)
-{
-}
-
+{}
+*/
 
 } //namespace ndn

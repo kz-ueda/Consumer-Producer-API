@@ -45,7 +45,7 @@
 #define MAX_EXCLUDED_DIGESTS    18  // int
 #define ASYNC_MODE              19  // bool
 #define FAST_SIGNING            20  // bool
-#define FACE                    21  // Face
+#define FACE_CONFIG             21  // Face
 #define RUNNING                 22  // bool
 #define INFOMAX                 23  // bool
 #define INFOMAX_ROOT            24  // TreeNode

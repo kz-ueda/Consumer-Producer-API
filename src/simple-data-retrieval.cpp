@@ -27,7 +27,7 @@ namespace ndn {
 SimpleDataRetrieval::SimpleDataRetrieval(Context* context)
   : DataRetrievalProtocol(context)
 {
-  context->getContextOption(FACE, m_face);
+  context->getContextOption(FACE_CONFIG, m_face);
 }
 
 void

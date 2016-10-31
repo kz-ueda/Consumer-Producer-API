@@ -34,7 +34,7 @@ ReliableDataRetrieval::ReliableDataRetrieval(Context* context)
   , m_interestsInFlight(0)
   , m_segNumber(0)
 {
-  context->getContextOption(FACE, m_face);
+  context->getContextOption(FACE_CONFIG, m_face);
   m_scheduler = new Scheduler(m_face->getIoService());
 }
 
@@ -424,11 +424,19 @@ ReliableDataRetrieval::retransmitFreshInterest(const ndn::Interest& interest)
   
       // this is to inherit the exclusions from the nacked interest
       Exclude exclusion = retxInterest.getExclude();
+      for(Exclude::const_iterator it = interest.getExclude().begin();
+                                  it != interest.getExclude().end(); it++)
+      {
+	exclusion.excludeRange(it->from, it->to);
+      }
+      /* Old version of exclude API
       for(Exclude::exclude_type::const_iterator it = interest.getExclude().begin();
                                               it != interest.getExclude().end(); ++it)
       {
         exclusion.appendExclude(it->first, false);
       }
+      */
+
       retxInterest.setExclude(exclusion);
   
       ConsumerInterestCallback onInterestRetransmitted = EMPTY_CALLBACK;
@@ -492,7 +500,7 @@ ReliableDataRetrieval::retransmitInterestWithExclude( const ndn::Interest& inter
       name::Component implicitDigest = name::Component::fromImplicitSha256Digest(implicitDigestBuffer);
     
       Exclude exclusion = interest.getExclude();
-      exclusion.appendExclude(implicitDigest, false);
+      exclusion.excludeOne(implicitDigest);
       interestWithExlusion.setExclude(exclusion);
     }
     else
@@ -886,10 +894,10 @@ ReliableDataRetrieval::onTimeout(const ndn::Interest& interest)
     
     // this is to inherit the exclusions from the timed out interest
     Exclude exclusion = retxInterest.getExclude();
-    for(Exclude::exclude_type::const_iterator it = interest.getExclude().begin();
+    for(Exclude::const_iterator it = interest.getExclude().begin();
                                               it != interest.getExclude().end(); ++it)
     {
-      exclusion.appendExclude(it->first, false);
+      exclusion.excludeRange(it->from, it->to);
     }
     retxInterest.setExclude(exclusion);
   
@@ -1081,10 +1089,10 @@ ReliableDataRetrieval::fastRetransmit(const ndn::Interest& interest, uint64_t se
   
     // this is to inherit the exclusions from the lost interest
     Exclude exclusion = retxInterest.getExclude();
-    for(Exclude::exclude_type::const_iterator it = interest.getExclude().begin();
-                                              it != interest.getExclude().end(); ++it)
+    for(Exclude::const_iterator it = interest.getExclude().begin();
+                                it != interest.getExclude().end(); ++it)
     {
-      exclusion.appendExclude(it->first, false);
+      exclusion.excludeRange(it->from, it->to);
     }
     retxInterest.setExclude(exclusion);
   

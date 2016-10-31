@@ -29,6 +29,7 @@
 #include "tlv.hpp"
 
 #include <ndn-cxx/encoding/tlv.hpp>
+#include <ndn-cxx/encoding/encoder.hpp>
 #include <ndn-cxx/util/crypto.hpp>
 #include <ndn-cxx/security/key-chain.hpp>
 

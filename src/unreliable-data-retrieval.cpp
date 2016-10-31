@@ -33,7 +33,7 @@ UnreliableDataRetrieval::UnreliableDataRetrieval(Context* context)
   , m_currentWindowSize(0)
   , m_interestsInFlight(0)
 {
-  context->getContextOption(FACE, m_face);
+  context->getContextOption(FACE_CONFIG, m_face);
 }
 
 void

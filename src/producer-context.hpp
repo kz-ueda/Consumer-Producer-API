@@ -33,7 +33,7 @@
 
 #include <ndn-cxx/signature.hpp>
 #include <ndn-cxx/security/key-chain.hpp>
-#include <ndn-cxx/management/nfd-controller.hpp>
+#include <ndn-cxx/mgmt/nfd/controller.hpp>
 #include <ndn-cxx/util/scheduler.hpp>
 
 #include <boost/asio.hpp>
@@ -321,9 +321,11 @@ private:
   void
   onStrategyChangeSuccess(const nfd::ControlParameters& commandSuccessResult, 
                           const std::string& message);
-  
   void
-  onStrategyChangeError(uint32_t code, const std::string& error, const std::string& message);
+  onStrategyChangeError(const nfd::ControlResponse& commandFailResult,
+                        const std::string& message); 
+//  void
+//  onStrategyChangeError(uint32_t code, const std::string& error, const std::string& message);
 };
 
 } // namespace ndn
