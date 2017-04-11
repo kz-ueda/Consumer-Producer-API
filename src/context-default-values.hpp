@@ -34,10 +34,10 @@
 #define IDR 3
 
 // forwarding strategies
-const ndn::Name BEST_ROUTE("ndn:/localhost/nfd/strategy/best-route");
-const ndn::Name BROADCAST("ndn:/localhost/nfd/strategy/broadcast");
-const ndn::Name CLIENT_CONTROL("ndn:/localhost/nfd/strategy/client-control");
-//const ndn::Name NCC("ndn:/localhost/nfd/strategy/ncc");
+const ndn::Name BEST_ROUTE("/localhost/nfd/strategy/best-route");
+const ndn::Name BROADCAST("/localhost/nfd/strategy/broadcast");
+const ndn::Name CLIENT_CONTROL("/localhost/nfd/strategy/client-control");
+//const ndn::Name NCC("/localhost/nfd/strategy/ncc");
 
 // default values
 #define DEFAULT_INTEREST_LIFETIME 200  // milliseconds
