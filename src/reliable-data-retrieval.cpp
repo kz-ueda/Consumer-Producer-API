@@ -1133,7 +1133,7 @@ ReliableDataRetrieval::removeAllPendingInterests()
   
   if (!isAsync)
   {
-    // This won't work ---> m_face->getIoService().stop(); 
+    m_face->getIoService().stop(); // this worked.
     m_face->removeAllPendingInterests(); // faster, but destroys everything
   }
   else // slower, but destroys only necessary Interests
