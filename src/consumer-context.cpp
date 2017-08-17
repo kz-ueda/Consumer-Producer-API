@@ -33,6 +33,7 @@ Consumer::Consumer(Name prefix, int protocol)
   , m_nMaxRetransmissions(CONSUMER_MAX_RETRANSMISSIONS)
   , m_nMaxExcludedDigests(DEFAULT_MAX_EXCLUDED_DIGESTS)
   , m_isAsync(false)
+  , m_isLogging(false)
   , m_minSuffixComponents(DEFAULT_MIN_SUFFIX_COMP)
   , m_maxSuffixComponents(DEFAULT_MAX_SUFFIX_COMP)
   , m_childSelector(0)
@@ -345,7 +346,11 @@ Consumer::setContextOption(int optionName, bool optionValue)
     case RUNNING:
       m_isRunning = optionValue;
       return OPTION_VALUE_SET;
-                      
+
+    case LOGGING:
+      m_isLogging = optionValue;
+      return OPTION_VALUE_SET;
+
     default:
       return OPTION_VALUE_NOT_SET;
   }
@@ -607,6 +612,10 @@ Consumer::getContextOption(int optionName, bool& optionValue)
 
     case ASYNC_MODE:
       optionValue = m_isAsync;
+      return OPTION_FOUND;
+    
+    case LOGGING:
+      optionValue = m_isLogging;
       return OPTION_FOUND;
     
     case RUNNING:

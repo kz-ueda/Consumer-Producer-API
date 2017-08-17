@@ -225,6 +225,7 @@ private:
   size_t m_receiveBufferSize;
   
   bool m_isAsync;
+  bool m_isLogging;
   
   /// selectors
   

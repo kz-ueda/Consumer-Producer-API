@@ -149,6 +149,10 @@ ReliableDataRetrieval::sendInterest()
   //  return;
   
   m_interestsInFlight++;
+  bool isLogging = false;
+  m_context->getContextOption(LOGGING, isLogging);
+  if(isLogging)
+    std::cout << time::steady_clock::now() << " RDR::inflight = " << m_interestsInFlight << ", windowSize = " << m_currentWindowSize << std::endl; 
   m_interestRetransmissions[m_segNumber] = 0;
   m_interestTimepoints[m_segNumber] = time::steady_clock::now();
   m_expressedInterests[m_segNumber] = m_face->expressInterest(interest,

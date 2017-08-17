@@ -73,6 +73,8 @@
 #define DATA_TO_VERIFY            214 // DataVerificationCallback
 #define CONTENT_RETRIEVED         215 // ContentCallback
 
+#define LOGGING                   250 // Logging purpose
+
 // producer context events
 #define INTEREST_ENTER_CNTX       301   
 #define INTEREST_DROP_RCV_BUF     302
