@@ -152,7 +152,7 @@ ReliableDataRetrieval::sendInterest()
   bool isLogging = false;
   m_context->getContextOption(LOGGING, isLogging);
   if(isLogging)
-    std::cout << ndn::time::toUnixTimeStamp(time::system_clock::now()) << " RDR::inflight = " << m_interestsInFlight << ", windowSize = " << m_currentWindowSize << std::endl; 
+    std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::inflight = " << m_interestsInFlight << ", windowSize = " << m_currentWindowSize << ", name = " << interest.getName().toUri() << std::endl; 
   m_interestRetransmissions[m_segNumber] = 0;
   m_interestTimepoints[m_segNumber] = time::steady_clock::now();
   m_expressedInterests[m_segNumber] = m_face->expressInterest(interest,
@@ -180,10 +180,14 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
   uint64_t segment = interest.getName().get(-1).toSegment();
   m_expressedInterests.erase(segment);
   m_scheduledInterests.erase(segment);
+  bool isLogging = false;
+  m_context->getContextOption(LOGGING, isLogging);
   
   if (m_interestTimepoints.find(segment) != m_interestTimepoints.end())
   {
     time::steady_clock::duration duration = time::steady_clock::now() - m_interestTimepoints[segment];
+    if(isLogging)
+      std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::RTT = " << duration << ", name = " << data.getName().toUri() << std::endl; 
     m_rttEstimator.addMeasurement(boost::chrono::duration_cast<boost::chrono::microseconds>(duration));
     
     RttEstimator::Duration rto = m_rttEstimator.computeRto();
@@ -243,7 +247,7 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
     //int rtt = -1;
     //m_context->getContextOption(INTEREST_LIFETIME, rtt);
     
-    //paceInterests(m_currentWindowSize, time::milliseconds(10));
+    //paceInterests(m_currentWindowSize, time::milliseconds(1));
     
     while (m_interestsInFlight < m_currentWindowSize)
       {
@@ -497,7 +501,7 @@ ReliableDataRetrieval::retransmitInterestWithExclude( const ndn::Interest& inter
     int nMaxExcludedDigests = 0;
     m_context->getContextOption(MAX_EXCLUDED_DIGESTS, nMaxExcludedDigests);
     
-    if (interest.getExclude().size() < nMaxExcludedDigests)
+    if (interest.getExclude().size() < (unsigned int) nMaxExcludedDigests)
     {
       const Block& block = dataSegment.wireEncode();
       ndn::ConstBufferPtr implicitDigestBuffer = ndn::crypto::sha256(block.wire(), block.size());
