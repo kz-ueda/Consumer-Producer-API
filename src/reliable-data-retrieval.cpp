@@ -22,6 +22,8 @@
 #include "reliable-data-retrieval.hpp"
 #include "consumer-context.hpp"
 
+#define INTEREST_PACING 1
+
 namespace ndn {
 
 ReliableDataRetrieval::ReliableDataRetrieval(Context* context)
@@ -247,30 +249,27 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
     //int rtt = -1;
     //m_context->getContextOption(INTEREST_LIFETIME, rtt);
     
-    //paceInterests(m_currentWindowSize, time::milliseconds(1));
-    
-    while (m_interestsInFlight < m_currentWindowSize)
+    if (INTEREST_PACING == 1){
+      // Seg==0, inFlightとWindowサイズを比較して投げる数を制御
+      plannedInflight = m_interestsInFlight + m_scheduledInterests.size();
+      // scheduled interestの数を見て, inFlightとの合計がRWINを超えないか確認.
+      if (plannedInflight < m_currentWindowSize)
       {
+        toInflight = m_currentWindowSize - plannedInflight;
         if (m_isFinalBlockNumberDiscovered)
         {
-          if (m_segNumber <= m_finalBlockNumber)
+          if(m_segNumber + toInflight <= m_finalBlockNumber)
           {
-            sendInterest();
+            paceInterests(toInflight, time::milliseconds(1));
           }
           else
           {
-            break;
+            paceInterests(m_finalBlockNumber - m_segNumber, time::milliseconds(1));
           }
         }
-        else
-        {
-          sendInterest();
-        }
       }
-  }
-  else
-  {
-    if (m_isRunning)
+    }
+    else
     {
       while (m_interestsInFlight < m_currentWindowSize)
       {
@@ -288,6 +287,53 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
         else
         {
           sendInterest();
+        }
+      }
+    }
+  }
+  else
+  {
+    if (m_isRunning)
+    {
+      if (INTEREST_PACING == 1){
+        // Seg==0, inFlightとWindowサイズを比較して投げる数を制御
+        plannedInflight = m_interestsInFlight + m_scheduledInterests.size();
+        // scheduled interestの数を見て, inFlightとの合計がRWINを超えないか確認.
+        if (plannedInflight < m_currentWindowSize)
+        {
+          toInflight = m_currentWindowSize - plannedInflight;
+          if (m_isFinalBlockNumberDiscovered)
+          {
+            if(m_segNumber + toInflight <= m_finalBlockNumber)
+            {
+              paceInterests(toInflight, time::milliseconds(1));
+            }
+            else
+            {
+              paceInterests(m_finalBlockNumber - m_segNumber, time::milliseconds(1));
+            }
+          }
+        }
+      }
+      else
+      {
+        while (m_interestsInFlight < m_currentWindowSize)
+        {
+          if (m_isFinalBlockNumberDiscovered)
+          {
+            if (m_segNumber <= m_finalBlockNumber)
+            {
+              sendInterest();
+            }
+            else
+            {
+              break;
+            }
+          }
+          else
+          {
+            sendInterest();
+          }
         }
       }
     }
