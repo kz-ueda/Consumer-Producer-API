@@ -152,7 +152,7 @@ ReliableDataRetrieval::sendInterest()
   bool isLogging = false;
   m_context->getContextOption(LOGGING, isLogging);
   if(isLogging)
-    std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::inflight = " << m_interestsInFlight << ", windowSize = " << m_currentWindowSize << ", name = " << interest.getName().toUri() << std::endl; 
+    std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::sendInterest::inflight = " << m_interestsInFlight << ", windowSize = " << m_currentWindowSize << ", name = " << interest.getName().toUri() << std::endl; 
   m_interestRetransmissions[m_segNumber] = 0;
   m_interestTimepoints[m_segNumber] = time::steady_clock::now();
   m_expressedInterests[m_segNumber] = m_face->expressInterest(interest,
@@ -1071,6 +1071,7 @@ ReliableDataRetrieval::checkFastRetransmissionConditions(const ndn::Interest& in
             nOutOfOrderSegments++;
             if (nOutOfOrderSegments == DEFAULT_FAST_RETX_CONDITION)
             {
+              std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " OUT_OF_ORDER HAS OCCURED. received:" << segNumber << ", OutOfOrderSegments:" << nOutOfOrderSegments << ", PossiblyLostSegment:" << possiblyLostSegment << std::endl;
               m_fastRetxSegments[possiblyLostSegment] = true;
               fastRetransmit(interest, possiblyLostSegment);
             }
@@ -1127,6 +1128,7 @@ ReliableDataRetrieval::fastRetransmit(const ndn::Interest& interest, uint64_t se
     m_interestsInFlight++;
     m_interestRetransmissions[segNumber]++;
     //std::cout << "fast retx" << std::endl;
+    std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::fastReTx::inflight = " << m_interestsInFlight << ", windowSize = " << m_currentWindowSize << ", name = " << retxInterest.getName().toUri() << std::endl; 
     m_expressedInterests[segNumber] = m_face->expressInterest(retxInterest,
                                           bind(&ReliableDataRetrieval::onData, this, _1, _2),
                                           bind(&ReliableDataRetrieval::onTimeout, this, _1));
