@@ -22,12 +22,6 @@
 #include "reliable-data-retrieval.hpp"
 #include "consumer-context.hpp"
 
-<<<<<<< HEAD
-=======
-#define INTEREST_PACING 1
-#define PACING_TIME 1000
-
->>>>>>> 02f64719f531003a6d2d424971e654a28c95154a
 namespace ndn {
 
 ReliableDataRetrieval::ReliableDataRetrieval(Context* context)
