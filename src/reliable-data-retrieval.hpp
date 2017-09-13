@@ -149,6 +149,8 @@ private:
   std::unordered_map<uint64_t, time::steady_clock::time_point> m_interestTimepoints; // by segment
   RttEstimator m_rttEstimator;
   
+  int m_pacingInterval;
+
   // buffers
   std::map<uint64_t, shared_ptr<Data> > m_receiveBuffer; // verified segments by segment number
   std::map<uint64_t, shared_ptr<Data> > m_unverifiedSegments; // used with embedded manifests

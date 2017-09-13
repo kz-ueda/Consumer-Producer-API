@@ -35,6 +35,7 @@ ReliableDataRetrieval::ReliableDataRetrieval(Context* context)
   , m_segNumber(0)
 {
   context->getContextOption(FACE_CONFIG, m_face);
+  context->getContextOption(PACING_INTERVAL, m_pacingInterval);
   m_scheduler = new Scheduler(m_face->getIoService());
 }
 
