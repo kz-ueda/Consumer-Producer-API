@@ -35,7 +35,6 @@ ReliableDataRetrieval::ReliableDataRetrieval(Context* context)
   , m_segNumber(0)
 {
   context->getContextOption(FACE_CONFIG, m_face);
-  context->getContextOption(PACING_INTERVAL, m_pacingInterval);
   m_scheduler = new Scheduler(m_face->getIoService());
 }
 
@@ -231,6 +230,8 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
     onContentData(interest, data);
   }
   
+  int pacing = 0;
+  m_context->getContextOption(PACING_INTERVAL, pacing);
   if (segment == 0) // if it was the first Interest
   {
     // in a next round try to transmit all Interests, except the first one
@@ -247,8 +248,7 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
     
     //int rtt = -1;
     //m_context->getContextOption(INTEREST_LIFETIME, rtt);
-    
-    if (m_pacingInterval > 0){
+    if (pacing > 0){
       // Seg==0, inFlightとWindowサイズを比較して投げる数を制御
       int plannedInflight = m_interestsInFlight + m_scheduledInterests.size();
       // scheduled interestの数を見て, inFlightとの合計がRWINを超えないか確認.
@@ -263,11 +263,11 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
           {
             if(m_segNumber + toInflight <= m_finalBlockNumber + 1)
             {
-              paceInterests(toInflight, time::milliseconds(m_pacingInterval));
+              paceInterests(toInflight, time::milliseconds(pacing));
             }
             else
             {
-              paceInterests(m_finalBlockNumber - m_segNumber + 1, time::milliseconds(m_pacingInterval));
+              paceInterests(m_finalBlockNumber - m_segNumber + 1, time::milliseconds(pacing));
             }
           }
         }
@@ -299,7 +299,7 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
   {
     if (m_isRunning)
     {
-      if (m_pacingInterval > 0){
+      if (pacing > 0){
         // Seg==0, inFlightとWindowサイズを比較して投げる数を制御
         int plannedInflight = m_interestsInFlight + m_scheduledInterests.size();
         // scheduled interestの数を見て, inFlightとの合計がRWINを超えないか確認.
@@ -312,11 +312,11 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
             if(m_segNumber + m_scheduledInterests.size() < m_finalBlockNumber){
               if(m_segNumber + toInflight <= m_finalBlockNumber + 1)
               {
-                paceInterests(toInflight, time::milliseconds(m_pacingInterval));
+                paceInterests(toInflight, time::milliseconds(pacing));
               }
               else
               {
-                paceInterests(m_finalBlockNumber - m_segNumber + 1, time::milliseconds(m_pacingInterval));
+                paceInterests(m_finalBlockNumber - m_segNumber + 1, time::milliseconds(pacing));
               }
 	    }
           }
