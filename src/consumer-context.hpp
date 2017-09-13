@@ -224,6 +224,8 @@ private:
   size_t m_sendBufferSize;
   size_t m_receiveBufferSize;
   
+  int m_pacingInterval;
+
   bool m_isAsync;
   bool m_isLogging;
   

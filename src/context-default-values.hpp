@@ -55,6 +55,9 @@ const ndn::Name CLIENT_CONTROL("/localhost/nfd/strategy/client-control");
 #define DEFAULT_DIGEST_SIZE 32                // of bytes
 #define DEFAULT_FAST_RETX_CONDITION 3         // of out-of-order segments
 
+// default parameters for RDR
+#define DEFAULT_PACING_INTERVAL 100          // 100 milisec for time window
+
 // maximum allowed values
 #define CONSUMER_MIN_RETRANSMISSIONS 0
 #define CONSUMER_MAX_RETRANSMISSIONS 32

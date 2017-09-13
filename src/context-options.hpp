@@ -50,7 +50,9 @@
 #define INFOMAX                 23  // bool
 #define INFOMAX_ROOT            24  // TreeNode
 #define INFOMAX_PRIORITY        25  // int
-#define INFOMAX_UPDATE_INTERVAL 26  // int (milliseconds) 
+#define INFOMAX_UPDATE_INTERVAL 26  // int (milliseconds)
+
+#define PACING_INTERVAL 40 // int (milliseconds)
 
 // selectors
 #define MIN_SUFFIX_COMP_S   101 // int

@@ -22,8 +22,6 @@
 #include "reliable-data-retrieval.hpp"
 #include "consumer-context.hpp"
 
-#define INTEREST_PACING 1
-
 namespace ndn {
 
 ReliableDataRetrieval::ReliableDataRetrieval(Context* context)
@@ -249,7 +247,7 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
     //int rtt = -1;
     //m_context->getContextOption(INTEREST_LIFETIME, rtt);
     
-    if (INTEREST_PACING == 1){
+    if (m_pacingInterval > 0){
       // Seg==0, inFlightとWindowサイズを比較して投げる数を制御
       plannedInflight = m_interestsInFlight + m_scheduledInterests.size();
       // scheduled interestの数を見て, inFlightとの合計がRWINを超えないか確認.
@@ -295,7 +293,7 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
   {
     if (m_isRunning)
     {
-      if (INTEREST_PACING == 1){
+      if (m_pacingInterval > 0){
         // Seg==0, inFlightとWindowサイズを比較して投げる数を制御
         plannedInflight = m_interestsInFlight + m_scheduledInterests.size();
         // scheduled interestの数を見て, inFlightとの合計がRWINを超えないか確認.

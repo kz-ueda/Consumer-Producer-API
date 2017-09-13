@@ -32,6 +32,7 @@ Consumer::Consumer(Name prefix, int protocol)
   , m_currentWindowSize(-1)
   , m_nMaxRetransmissions(CONSUMER_MAX_RETRANSMISSIONS)
   , m_nMaxExcludedDigests(DEFAULT_MAX_EXCLUDED_DIGESTS)
+  , m_pacingInterval(DEFAULT_PACING_INTERVAL)
   , m_isAsync(false)
   , m_isLogging(false)
   , m_minSuffixComponents(DEFAULT_MIN_SUFFIX_COMP)
@@ -289,6 +290,18 @@ Consumer::setContextOption(int optionName, int optionValue)
         return OPTION_VALUE_SET;
       }
   
+    case PACING_INTERVAL:
+      if (optionValue >= 0)
+      {
+        m_pacingInterval = optionValue;
+      }
+      else
+      {
+        m_pacingInterval = DEFAULT_PACING_INTERVAL;
+        return OPTION_VALUE_NOT_SET;
+      }
+      return OPTION_VALUE_SET;
+
     default:
       return OPTION_VALUE_NOT_SET;
   }
@@ -576,6 +589,10 @@ Consumer::getContextOption(int optionName, int& optionValue)
       
     case RIGHTMOST_CHILD_S:
       optionValue = m_childSelector;
+      return OPTION_FOUND;
+
+    case PACING_INTERVAL:
+      optionValue = m_pacingInterval;
       return OPTION_FOUND;
     
     default:
