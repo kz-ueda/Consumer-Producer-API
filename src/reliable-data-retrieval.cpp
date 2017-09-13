@@ -23,6 +23,7 @@
 #include "consumer-context.hpp"
 
 #define INTEREST_PACING 1
+#define PACING_TIME 1000
 
 namespace ndn {
 
@@ -251,20 +252,25 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
     
     if (INTEREST_PACING == 1){
       // Seg==0, inFlightとWindowサイズを比較して投げる数を制御
-      plannedInflight = m_interestsInFlight + m_scheduledInterests.size();
+      int plannedInflight = m_interestsInFlight + m_scheduledInterests.size();
       // scheduled interestの数を見て, inFlightとの合計がRWINを超えないか確認.
+      // m_segNumberは次に投げるセグメント番号が入っている.
       if (plannedInflight < m_currentWindowSize)
       {
-        toInflight = m_currentWindowSize - plannedInflight;
+        int toInflight = m_currentWindowSize - plannedInflight;
         if (m_isFinalBlockNumberDiscovered)
         {
-          if(m_segNumber + toInflight <= m_finalBlockNumber)
+	  std::cout << "toInflight: " << toInflight << ", plannedInflight:" << plannedInflight << ", m_segNumber: " << m_segNumber << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
+          if(m_segNumber + m_scheduledInterests.size() < m_finalBlockNumber)
           {
-            paceInterests(toInflight, time::milliseconds(1));
-          }
-          else
-          {
-            paceInterests(m_finalBlockNumber - m_segNumber, time::milliseconds(1));
+            if(m_segNumber + toInflight <= m_finalBlockNumber + 1)
+            {
+              paceInterests(toInflight, time::milliseconds(PACING_TIME));
+            }
+            else
+            {
+              paceInterests(m_finalBlockNumber - m_segNumber + 1, time::milliseconds(PACING_TIME));
+            }
           }
         }
       }
@@ -297,21 +303,24 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
     {
       if (INTEREST_PACING == 1){
         // Seg==0, inFlightとWindowサイズを比較して投げる数を制御
-        plannedInflight = m_interestsInFlight + m_scheduledInterests.size();
+        int plannedInflight = m_interestsInFlight + m_scheduledInterests.size();
         // scheduled interestの数を見て, inFlightとの合計がRWINを超えないか確認.
         if (plannedInflight < m_currentWindowSize)
         {
-          toInflight = m_currentWindowSize - plannedInflight;
+          int toInflight = m_currentWindowSize - plannedInflight;
           if (m_isFinalBlockNumberDiscovered)
           {
-            if(m_segNumber + toInflight <= m_finalBlockNumber)
-            {
-              paceInterests(toInflight, time::milliseconds(1));
-            }
-            else
-            {
-              paceInterests(m_finalBlockNumber - m_segNumber, time::milliseconds(1));
-            }
+	  std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::toInflight: " << toInflight << ", plannedInflight:" << plannedInflight << ", m_segNumber: " << m_segNumber << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
+            if(m_segNumber + m_scheduledInterests.size() < m_finalBlockNumber){
+              if(m_segNumber + toInflight <= m_finalBlockNumber + 1)
+              {
+                paceInterests(toInflight, time::milliseconds(PACING_TIME));
+              }
+              else
+              {
+                paceInterests(m_finalBlockNumber - m_segNumber + 1, time::milliseconds(PACING_TIME));
+              }
+	    }
           }
         }
       }
@@ -345,12 +354,14 @@ ReliableDataRetrieval::paceInterests(int nInterests, time::milliseconds timeWind
 {
   if (nInterests <= 0)
     return;
+  time::nanoseconds interval = time::nanoseconds(timeWindow) / nInterests; 
+  //time::nanoseconds interval = time::nanoseconds(timeWindow); 
 
-  time::nanoseconds interval = time::nanoseconds(1000000*timeWindow) / nInterests; 
-
-  for (int i = 1; i <= nInterests; i++)
+  std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " PACE_INTEREST FOR " << nInterests << " Interests, Interval:" << interval << std::endl; 
+  for (int i = 0; i < nInterests; i++)
   {
     // schedule next Interest
+    std::cout << "Schedule Interests for " << i*interval << std::endl;
     m_scheduledInterests[m_segNumber + i] = m_scheduler->scheduleEvent(i*interval,
                           bind(&ReliableDataRetrieval::sendInterest, this));
   }
