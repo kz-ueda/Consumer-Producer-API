@@ -1128,9 +1128,12 @@ ReliableDataRetrieval::checkFastRetransmissionConditions(const ndn::Interest& in
           if (m_receivedSegments.find(j) != m_receivedSegments.end())
           {
             nOutOfOrderSegments++;
-            if (nOutOfOrderSegments == DEFAULT_FAST_RETX_CONDITION)
+            int fastRetxThreshold = DEFAULT_FAST_RETX_CONDITION;
+            m_context->getContextOption(FAST_RETX_THRESHOLD, fastRetxThreshold);
+            if (nOutOfOrderSegments == fastRetxThreshold)
             {
-              std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " OUT_OF_ORDER HAS OCCURED. received:" << segNumber << ", OutOfOrderSegments:" << nOutOfOrderSegments << ", PossiblyLostSegment:" << possiblyLostSegment << std::endl;
+              std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " OUT_OF_ORDER HAS OCCURED. received:" 
+              << segNumber << ", OutOfOrderSegments:" << (int)nOutOfOrderSegments << ", PossiblyLostSegment:" << possiblyLostSegment << std::endl;
               m_fastRetxSegments[possiblyLostSegment] = true;
               fastRetransmit(interest, possiblyLostSegment);
             }

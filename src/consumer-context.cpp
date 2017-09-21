@@ -33,6 +33,7 @@ Consumer::Consumer(Name prefix, int protocol)
   , m_nMaxRetransmissions(CONSUMER_MAX_RETRANSMISSIONS)
   , m_nMaxExcludedDigests(DEFAULT_MAX_EXCLUDED_DIGESTS)
   , m_pacingInterval(DEFAULT_PACING_INTERVAL)
+  , m_fastRetxThreshold(DEFAULT_FAST_RETX_CONDITION)
   , m_isAsync(false)
   , m_isLogging(false)
   , m_minSuffixComponents(DEFAULT_MIN_SUFFIX_COMP)
@@ -295,6 +296,12 @@ Consumer::setContextOption(int optionName, int optionValue)
       {
         m_pacingInterval = optionValue;
       }
+    case FAST_RETX_THRESHOLD:
+      if (optionValue >= 0)
+      {
+        m_fastRetxThreshold = optionValue;
+      }
+
       else
       {
         m_pacingInterval = DEFAULT_PACING_INTERVAL;
@@ -595,6 +602,10 @@ Consumer::getContextOption(int optionName, int& optionValue)
       optionValue = m_pacingInterval;
       return OPTION_FOUND;
     
+    case FAST_RETX_THRESHOLD:
+      optionValue = m_fastRetxThreshold;
+      return OPTION_FOUND;
+
     default:
       return OPTION_NOT_FOUND;
   }

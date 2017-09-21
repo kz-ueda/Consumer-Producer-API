@@ -53,6 +53,7 @@
 #define INFOMAX_UPDATE_INTERVAL 26  // int (milliseconds)
 
 #define PACING_INTERVAL 40 // int (milliseconds)
+#define FAST_RETX_THRESHOLD 41 // int
 
 // selectors
 #define MIN_SUFFIX_COMP_S   101 // int

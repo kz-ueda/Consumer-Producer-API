@@ -225,6 +225,7 @@ private:
   size_t m_receiveBufferSize;
   
   int m_pacingInterval;
+  int m_fastRetxThreshold;
 
   bool m_isAsync;
   bool m_isLogging;
