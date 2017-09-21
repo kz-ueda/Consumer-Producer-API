@@ -250,24 +250,26 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
     //m_context->getContextOption(INTEREST_LIFETIME, rtt);
     if (pacing > 0){
       // Seg==0, inFlightとWindowサイズを比較して投げる数を制御
-      int plannedInflight = m_interestsInFlight + m_scheduledInterests.size();
-      // scheduled interestの数を見て, inFlightとの合計がRWINを超えないか確認.
+      int totalInflight = m_interestsInFlight + m_scheduledInterests.size();
+      // totalのinflight数を見て, 合計がRWINを超えないか確認.
       // m_segNumberは次に投げるセグメント番号が入っている.
-      if (plannedInflight < m_currentWindowSize)
-      {
-        int toInflight = m_currentWindowSize - plannedInflight;
+      if (totalInflight < m_currentWindowSize)
+      { 
+        int canInflight = m_currentWindowSize - totalInflight;
         if (m_isFinalBlockNumberDiscovered)
         {
-	  std::cout << "toInflight: " << toInflight << ", plannedInflight:" << plannedInflight << ", m_segNumber: " << m_segNumber << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
+          std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::canInflight: " << canInflight 
+          << ", totalInflight:" << totalInflight << ", scheduled: " << m_scheduledInterests.size() << ", m_segNumber: " << m_segNumber 
+          << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
           if(m_segNumber + m_scheduledInterests.size() < m_finalBlockNumber)
           {
-            if(m_segNumber + toInflight <= m_finalBlockNumber + 1)
+            if(canInflight + m_segNumber + m_scheduledInterests.size() <= m_finalBlockNumber + 1)
             {
-              paceInterests(toInflight, time::milliseconds(pacing));
+              paceInterests(canInflight, time::milliseconds(pacing));
             }
             else
             {
-              paceInterests(m_finalBlockNumber - m_segNumber + 1, time::milliseconds(pacing));
+              paceInterests(m_finalBlockNumber - m_segNumber - m_scheduledInterests.size() + 1, time::milliseconds(pacing));
             }
           }
         }
@@ -301,22 +303,24 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
     {
       if (pacing > 0){
         // Seg==0, inFlightとWindowサイズを比較して投げる数を制御
-        int plannedInflight = m_interestsInFlight + m_scheduledInterests.size();
+        int totalInflight = m_interestsInFlight + m_scheduledInterests.size();
         // scheduled interestの数を見て, inFlightとの合計がRWINを超えないか確認.
-        if (plannedInflight < m_currentWindowSize)
+        if (totalInflight < m_currentWindowSize)
         {
-          int toInflight = m_currentWindowSize - plannedInflight;
+          int canInflight = m_currentWindowSize - totalInflight;
           if (m_isFinalBlockNumberDiscovered)
           {
-	  std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::toInflight: " << toInflight << ", plannedInflight:" << plannedInflight << ", m_segNumber: " << m_segNumber << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
+            std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::canInflight: " << canInflight 
+            << ", totalInflight:" << totalInflight << ", scheduled: " << m_scheduledInterests.size() << ", m_segNumber: " << m_segNumber 
+            << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
             if(m_segNumber + m_scheduledInterests.size() < m_finalBlockNumber){
-              if(m_segNumber + toInflight <= m_finalBlockNumber + 1)
+              if(canInflight + m_segNumber + m_scheduledInterests.size() <= m_finalBlockNumber + 1)
               {
-                paceInterests(toInflight, time::milliseconds(pacing));
+                paceInterests(canInflight, time::milliseconds(pacing));
               }
               else
               {
-                paceInterests(m_finalBlockNumber - m_segNumber + 1, time::milliseconds(pacing));
+                paceInterests(m_finalBlockNumber - m_segNumber -m_scheduledInterests.size() + 1, time::milliseconds(pacing));
               }
 	    }
           }
