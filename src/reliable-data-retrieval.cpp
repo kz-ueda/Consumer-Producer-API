@@ -356,8 +356,8 @@ ReliableDataRetrieval::paceInterests(int nInterests, time::milliseconds timeWind
 {
   if (nInterests <= 0)
     return;
-  time::nanoseconds interval = time::nanoseconds(timeWindow) / nInterests; 
-  //time::nanoseconds interval = time::nanoseconds(timeWindow); 
+  //time::nanoseconds interval = time::nanoseconds(timeWindow) / nInterests; 
+  time::nanoseconds interval = time::nanoseconds(timeWindow); 
 
   std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " PACE_INTEREST FOR " << nInterests << " Interests, Interval:" << interval << std::endl; 
   for (int i = 0; i < nInterests; i++)
