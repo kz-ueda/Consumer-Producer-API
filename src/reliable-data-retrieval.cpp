@@ -158,7 +158,9 @@ ReliableDataRetrieval::sendInterest()
   m_expressedInterests[m_segNumber] = m_face->expressInterest(interest,
                                                 bind(&ReliableDataRetrieval::onData, this, _1, _2),
                                                 bind(&ReliableDataRetrieval::onTimeout, this, _1));
+  m_scheduledInterests.erase(m_segNumber);
   m_segNumber++;
+  
 }
 
 void
@@ -179,7 +181,8 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
 
   uint64_t segment = interest.getName().get(-1).toSegment();
   m_expressedInterests.erase(segment);
-  m_scheduledInterests.erase(segment);
+  // erase is processed in sendInterest()
+  //m_scheduledInterests.erase(segment);
   bool isLogging = false;
   m_context->getContextOption(LOGGING, isLogging);
   
