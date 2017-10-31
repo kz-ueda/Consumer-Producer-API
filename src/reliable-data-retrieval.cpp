@@ -33,6 +33,8 @@ ReliableDataRetrieval::ReliableDataRetrieval(Context* context)
   , m_currentWindowSize(0)
   , m_interestsInFlight(0)
   , m_segNumber(0)
+  , m_minRTT(0)
+  , m_maxRTT(0)
 {
   context->getContextOption(FACE_CONFIG, m_face);
   m_scheduler = new Scheduler(m_face->getIoService());
@@ -60,23 +62,27 @@ ReliableDataRetrieval::start()
   m_unverifiedSegments.clear();
   m_verifiedManifests.clear();
   
+  // Inport finalBlockNumber from context
+  int finalBlockFromContext = -1;
+  m_context->getContextOption(FINAL_BLOCK_NUMBER, finalBlockFromContext);
+  if (finalBlockFromContext > 0){
+    m_finalBlockNumber = finalBlockFromContext;
+    m_isFinalBlockNumberDiscovered = true;
+  }  
+
   // this is to support window size "inheritance" between consume calls
-  /*int currentWindowSize = -1;
+  int currentWindowSize = -1;
   m_context->getContextOption(CURRENT_WINDOW_SIZE, currentWindowSize);
   
   if (currentWindowSize > 0)
   {
     m_currentWindowSize = currentWindowSize;
   }
-  else*/
-  
-  /*{
+  else{
     int minWindowSize = -1;
     m_context->getContextOption(MIN_WINDOW_SIZE, minWindowSize);
-    
     m_currentWindowSize = minWindowSize;
-  }*/
-  
+  }
   // initial burst of Interest packets
   /*while (m_interestsInFlight < m_currentWindowSize)
   {
@@ -160,7 +166,6 @@ ReliableDataRetrieval::sendInterest()
                                                 bind(&ReliableDataRetrieval::onTimeout, this, _1));
   m_scheduledInterests.erase(m_segNumber);
   m_segNumber++;
-  
 }
 
 void
@@ -170,6 +175,15 @@ ReliableDataRetrieval::stop()
   removeAllPendingInterests();
   removeAllScheduledInterests();
 }
+
+void
+ReliableDataRetrieval::getNetworkStatistics(double minRTT, double maxRTT, int currentWindow)
+{
+  minRTT = m_minRTT;
+  maxRTT = m_maxRTT;
+  currentWindow = m_currentWindowSize;
+}
+
 
 void
 ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
@@ -192,6 +206,12 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
     if(isLogging)
       std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::RTT = " << duration << ", name = " << data.getName().toUri() << std::endl; 
     m_rttEstimator.addMeasurement(boost::chrono::duration_cast<boost::chrono::microseconds>(duration));
+    // Update min/max RTT
+    double m = static_cast<double>(duration.count());
+    if (m_minRTT == 0 || m_minRTT > m)
+      m_minRTT = m;
+    if (m_maxRTT < m)
+      m_maxRTT = m; 
     
     RttEstimator::Duration rto = m_rttEstimator.computeRto();
     boost::chrono::milliseconds lifetime = boost::chrono::duration_cast<boost::chrono::milliseconds>(rto);

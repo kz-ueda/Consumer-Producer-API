@@ -68,6 +68,9 @@ public:
   void
   stop();
 
+  void
+  getNetworkStatistics(double minRTT, double maxRTT, int currentWindow);
+
 private:
 
   void
@@ -157,6 +160,10 @@ private:
   // Fast Retransmission
   std::map<uint64_t, bool> m_receivedSegments;
   std::unordered_map<uint64_t, bool> m_fastRetxSegments;
+
+  // Network Statistics
+  double m_minRTT;
+  double m_maxRTT;
 };
 
 } // namespace ndn
