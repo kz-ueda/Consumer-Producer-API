@@ -78,14 +78,11 @@ ReliableDataRetrieval::start()
   {
     m_currentWindowSize = currentWindowSize;
   }
-  //else
-  /*{
+  else{
     int minWindowSize = -1;
     m_context->getContextOption(MIN_WINDOW_SIZE, minWindowSize);
-    
     m_currentWindowSize = minWindowSize;
-  }*/
-  
+  }
   // initial burst of Interest packets
   /*while (m_interestsInFlight < m_currentWindowSize)
   {
@@ -210,7 +207,7 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
       std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::RTT = " << duration << ", name = " << data.getName().toUri() << std::endl; 
     m_rttEstimator.addMeasurement(boost::chrono::duration_cast<boost::chrono::microseconds>(duration));
     // Update min/max RTT
-    double m = static_cast<double>(duration.count())
+    double m = static_cast<double>(duration.count());
     if (m_minRTT == 0 || m_minRTT > m)
       m_minRTT = m;
     if (m_maxRTT < m)
