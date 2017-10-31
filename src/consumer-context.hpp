@@ -51,7 +51,7 @@ public:
    *
    * @param prefix - Name components that define the range of application frames (ADU) 
    *        that can be retrieved from the network.
-   * @param protocol - 1) SDR 2) UDR 3) RDR
+   * @param protocol - 1) SDR 2) UDR 3) RDR 4) BBR
    */
   explicit Consumer(const Name prefix, int protocol);
   
@@ -226,6 +226,7 @@ private:
   
   int m_pacingInterval;
   int m_fastRetxThreshold;
+  int m_finalBlockNumber;
 
   bool m_isAsync;
   bool m_isLogging;

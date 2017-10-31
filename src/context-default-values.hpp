@@ -32,6 +32,7 @@
 #define UDR 1
 #define RDR 2
 #define IDR 3
+#define BBR 4
 
 // forwarding strategies
 const ndn::Name BEST_ROUTE("/localhost/nfd/strategy/best-route");
