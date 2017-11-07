@@ -56,6 +56,19 @@ namespace ndn {
  * to five digests, which means that the protocol attempts up to five retransmissions in order to 
  * recover from the Data verification failure.
  */ 
+
+class ExtendedRdrOptions{
+public:
+  explicit ExtendedRdrOptions(){}
+  double initCwnd = 1.0; ///< initial congestion window size
+  double initSsthresh = std::numeric_limits<double>::max(); ///< initial slow start threshold
+  double aiStep = 1.0; ///< additive increase step (in segments)
+  double mdCoef = 0.5; ///< multiplicative decrease coefficient
+  time::milliseconds rtoCheckInterval{10}; ///< interval for checking retransmission timer
+  bool disableCwa = false; ///< disable Conservative Window Adaptation
+  bool resetCwndToInit = false; ///< reduce cwnd to initCwnd when loss event occurs
+};
+
 class ReliableDataRetrieval : public DataRetrievalProtocol
 {
 public:
@@ -190,19 +203,6 @@ private:
   double m_maxRTT;    // 
   double m_ssthresh;  // slow start threshold
   time::steady_clock::TimePoint m_startTime;
-};
-
-
-class ExtendedRdrOptions{
-public:
-  explicit ExtendedRdrOptions(){}
-  double initCwnd = 1.0; ///< initial congestion window size
-  double initSsthresh = std::numeric_limits<double>::max(); ///< initial slow start threshold
-  double aiStep = 1.0; ///< additive increase step (in segments)
-  double mdCoef = 0.5; ///< multiplicative decrease coefficient
-  time::milliseconds rtoCheckInterval{10}; ///< interval for checking retransmission timer
-  bool disableCwa = false; ///< disable Conservative Window Adaptation
-  bool resetCwndToInit = false; ///< reduce cwnd to initCwnd when loss event occurs
 };
 
 } // namespace ndn
