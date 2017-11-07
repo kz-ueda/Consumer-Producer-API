@@ -35,6 +35,7 @@ ReliableDataRetrieval::ReliableDataRetrieval(Context* context,
   , m_interestsInFlight(0)
   , m_segNumber(0)
   , m_options(options)
+  , m_isPacing(false)
   , m_minRTT(0)
   , m_maxRTT(0)
   , m_ssthresh(m_options.initSsthresh)
@@ -339,32 +340,37 @@ ReliableDataRetrieval::controlOutgoingInterests()
   m_context->getContextOption(PACING_INTERVAL, pacing);
   if (pacing > 0)
   {
-    // totalのinflight数がRWINを超えないか確認. m_segNumber=次に投げるセグメント番号.
-    int totalInflight = m_interestsInFlight + m_scheduledInterests.size();
-    if (totalInflight < m_currentWindowSize)
-    { 
-      // inflight availability
-      int availability = m_currentWindowSize - totalInflight;
-      if (m_isFinalBlockNumberDiscovered)
-      {
-        std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::availability: " << availability 
-        << ", totalInflight:" << totalInflight << ", scheduled: " << m_scheduledInterests.size() << ", m_segNumber: " << m_segNumber 
-        << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
-        if(m_segNumber + m_scheduledInterests.size() < m_finalBlockNumber)
+    if(!m_isPacing)
+    {
+      // totalのinflight数がRWINを超えないか確認. m_segNumber=次に投げるセグメント番号.
+      int totalInflight = m_interestsInFlight + m_scheduledInterests.size();
+      if (totalInflight < m_currentWindowSize)
+      { 
+        // inflight availability
+        int availability = m_currentWindowSize - totalInflight;
+        if (m_isFinalBlockNumberDiscovered)
         {
-          // Target: sendInterest when (m_segNumber == final)
-          // m_segNumber + m_scheduled.size() = nextRequestSegmentNumber
-          //  # of interests required for finalBlock = finalBlockNumber - nextRequestSegmentNumber + 1
-          // -> availability is bigger than that number??
-          if(availability <= m_finalBlockNumber - m_segNumber - m_scheduledInterests.size() + 1)
-            paceInterests(availability, time::milliseconds(pacing));
-          else
-            paceInterests(m_finalBlockNumber - m_segNumber - m_scheduledInterests.size() + 1, time::milliseconds(pacing));
+          std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::availability: " << availability 
+          << ", totalInflight:" << totalInflight << ", scheduled: " << m_scheduledInterests.size() << ", m_segNumber: " << m_segNumber 
+          << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
+          if(m_segNumber + m_scheduledInterests.size() < m_finalBlockNumber)
+          {
+            // Target: sendInterest when (m_segNumber == final)
+            // m_segNumber + m_scheduled.size() = nextRequestSegmentNumber
+            //  # of interests required for finalBlock = finalBlockNumber - nextRequestSegmentNumber + 1
+            // -> availability is bigger than that number??
+            if(availability <= m_finalBlockNumber - m_segNumber - m_scheduledInterests.size() + 1)
+              paceInterests(availability, time::milliseconds(pacing));
+            else
+              paceInterests(m_finalBlockNumber - m_segNumber - m_scheduledInterests.size() + 1, time::milliseconds(pacing));
+          }
+        }
+        else
+        {
+          sendInterest();
         }
       }
-      else
-        sendInterest();
-      }
+    }
   }
   // No pacing
   else
@@ -387,6 +393,7 @@ ReliableDataRetrieval::controlOutgoingInterests()
 void
 ReliableDataRetrieval::paceInterests(int nInterests, time::milliseconds timeWindow)
 {
+  m_isPacing = true;
   if (nInterests <= 0)
     return;
   //time::nanoseconds interval = time::nanoseconds(timeWindow) / nInterests; 
@@ -401,6 +408,8 @@ ReliableDataRetrieval::paceInterests(int nInterests, time::milliseconds timeWind
     m_scheduledInterests[nextSegment + i] = m_scheduler->scheduleEvent(i*interval,
                           bind(&ReliableDataRetrieval::sendInterest, this));
   }
+  // pacing finished.
+  m_isPacing = false; 
 }
 
 void

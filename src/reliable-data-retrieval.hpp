@@ -197,6 +197,7 @@ private:
   double m_maxRTT;    // 
   double m_ssthresh;  // slow start threshold
   time::steady_clock::TimePoint m_startTime;
+  bool m_isPacing;
 };
 
 } // namespace ndn
