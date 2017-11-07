@@ -288,7 +288,7 @@ ReliableDataRetrieval::increaseWindow()
   }
   // After increasing window size:
   m_context->setContextOption(CURRENT_WINDOW_SIZE, m_currentWindowSize);
-  afterCwndChange(time::steady_clock::now() - getStartTime(), m_currentWindowSize);
+  //afterCwndChange(time::steady_clock::now() - getStartTime(), m_currentWindowSize);
 }
 void
 ReliableDataRetrieval::decreaseWindow()
@@ -329,7 +329,7 @@ ReliableDataRetrieval::decreaseWindow()
   }
   // After decreasing window size:
   m_context->setContextOption(CURRENT_WINDOW_SIZE, m_currentWindowSize);
-  afterCwndChange(time::steady_clock::now() - getStartTime(), m_currentWindowSize);
+  //afterCwndChange(time::steady_clock::now() - getStartTime(), m_currentWindowSize);
 }
 
 void
