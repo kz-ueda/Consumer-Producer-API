@@ -59,11 +59,8 @@ namespace ndn {
 class ReliableDataRetrieval : public DataRetrievalProtocol
 {
 public:
-  typedef ExtendedRdrOptions options;
-
-public:
   ReliableDataRetrieval(Context* context,
-                        const ExtendedRdrOptions& options = Options());
+                        const ExtendedRdrOptions& options = ExtendedRdrOptions());
   
   ~ReliableDataRetrieval();
   
