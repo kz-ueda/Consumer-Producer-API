@@ -72,6 +72,8 @@ public:
 class ReliableDataRetrieval : public DataRetrievalProtocol
 {
 public:
+  typedef time::duration<double,time::milliseconds::period> ndn::Milliseconds
+public:
   ReliableDataRetrieval(Context* context,
                         const ExtendedRdrOptions& options = ExtendedRdrOptions());
   
@@ -92,7 +94,7 @@ public:
    * The callback function should be: void(Milliseconds age, double cwnd) where age is the
    * duration since pipeline starts, and cwnd is the new congestion window size (in segments).
    */
-  signal::Signal<PipelineInterestsAimd, Milliseconds, int> afterCwndChange;
+  ndn::util::signal::Signal<ReliableDataRetrieval, Milliseconds, int> afterCwndChange;
   
 private:
 
