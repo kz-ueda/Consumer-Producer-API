@@ -353,7 +353,7 @@ ReliableDataRetrieval::controlOutgoingInterests()
           std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::availability: " << availability 
           << ", totalInflight:" << totalInflight << ", scheduled: " << m_scheduledInterests.size() << ", m_segNumber: " << m_segNumber 
           << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
-          if(m_segNumber + m_scheduledInterests.size() < m_finalBlockNumber)
+          if(m_segNumber + m_scheduledInterests.size() <= m_finalBlockNumber)
           {
             // Target: sendInterest when (m_segNumber == final)
             // m_segNumber + m_scheduled.size() = nextRequestSegmentNumber
