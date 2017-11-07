@@ -58,6 +58,7 @@ const ndn::Name CLIENT_CONTROL("/localhost/nfd/strategy/client-control");
 
 // default parameters for RDR
 #define DEFAULT_PACING_INTERVAL 100          // 100 milisec for time window
+#define DEFAULT_FLOW_CONTROL    1            // 1: segment fetcher, 2: AIMD, 3: VEGAS, ...
 
 // maximum allowed values
 #define CONSUMER_MIN_RETRANSMISSIONS 0

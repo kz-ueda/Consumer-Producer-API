@@ -224,9 +224,11 @@ private:
   size_t m_sendBufferSize;
   size_t m_receiveBufferSize;
   
+  // for extended-RDR
   int m_pacingInterval;
   int m_fastRetxThreshold;
   int m_finalBlockNumber;
+  int m_flowControl;
 
   bool m_isAsync;
   bool m_isLogging;

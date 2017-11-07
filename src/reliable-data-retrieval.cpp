@@ -24,7 +24,8 @@
 
 namespace ndn {
 
-ReliableDataRetrieval::ReliableDataRetrieval(Context* context)
+ReliableDataRetrieval::ReliableDataRetrieval(Context* context,
+                                            const ExtendedRdrOptions& options)
   : DataRetrievalProtocol(context)
   , m_isFinalBlockNumberDiscovered(false)
   , m_finalBlockNumber(std::numeric_limits<uint64_t>::max())
@@ -33,8 +34,10 @@ ReliableDataRetrieval::ReliableDataRetrieval(Context* context)
   , m_currentWindowSize(0)
   , m_interestsInFlight(0)
   , m_segNumber(0)
+  , m_options(options)
   , m_minRTT(0)
   , m_maxRTT(0)
+  , m_ssthresh(m_options.initSsthresh)
 {
   context->getContextOption(FACE_CONFIG, m_face);
   m_scheduler = new Scheduler(m_face->getIoService());
@@ -61,11 +64,13 @@ ReliableDataRetrieval::start()
   m_receiveBuffer.clear();
   m_unverifiedSegments.clear();
   m_verifiedManifests.clear();
+  m_startTime = time::steady_clock::now();
   
   // Inport finalBlockNumber from context
   int finalBlockFromContext = -1;
   m_context->getContextOption(FINAL_BLOCK_NUMBER, finalBlockFromContext);
-  if (finalBlockFromContext > 0){
+  if (finalBlockFromContext > 0)
+  {
     m_finalBlockNumber = finalBlockFromContext;
     m_isFinalBlockNumberDiscovered = true;
   }  
@@ -73,45 +78,33 @@ ReliableDataRetrieval::start()
   // this is to support window size "inheritance" between consume calls
   int currentWindowSize = -1;
   m_context->getContextOption(CURRENT_WINDOW_SIZE, currentWindowSize);
-  
   if (currentWindowSize > 0)
   {
     m_currentWindowSize = currentWindowSize;
   }
-  else{
+  else
+  {
     int minWindowSize = -1;
     m_context->getContextOption(MIN_WINDOW_SIZE, minWindowSize);
     m_currentWindowSize = minWindowSize;
   }
-  // initial burst of Interest packets
-  /*while (m_interestsInFlight < m_currentWindowSize)
+
+  // RWIN has already configured -> controlOutgoingInterests
+  // Default: inflight==0, currentRWIN == -1
+  if (m_interestsInFlight < m_currentWindowSize)
   {
-    if (m_isFinalBlockNumberDiscovered)
-    {
-      if (m_segNumber <= m_finalBlockNumber)
-      {
-        sendInterest();
-      }
-      else
-      {
-        break;
-      }
-    }
-    else
-    {
-      sendInterest();
-    }
-  }*/
-  
-  //send exactly 1 Interest to get the FinalBlockId
-  sendInterest();
-  
+    controlOutgoingInterests();
+  }
+  else
+  {
+    //send exactly 1 Interest to get the FinalBlockId
+    sendInterest();
+  }
+
   bool isAsync = false;
   m_context->getContextOption(ASYNC_MODE, isAsync);
-  
   bool isContextRunning = false;
   m_context->getContextOption(RUNNING, isContextRunning);
-  
   if (!isAsync && !isContextRunning)
   {
     m_context->setContextOption(RUNNING, true);
@@ -184,7 +177,6 @@ ReliableDataRetrieval::getNetworkStatistics(double minRTT, double maxRTT, int cu
   currentWindow = m_currentWindowSize;
 }
 
-
 void
 ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
 {
@@ -195,8 +187,7 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
 
   uint64_t segment = interest.getName().get(-1).toSegment();
   m_expressedInterests.erase(segment);
-  // erase is processed in sendInterest()
-  //m_scheduledInterests.erase(segment);
+
   bool isLogging = false;
   m_context->getContextOption(LOGGING, isLogging);
   
@@ -221,157 +212,176 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
     
     // update lifetime only if user didn't specify prefered value
     if (interestLifetime == DEFAULT_INTEREST_LIFETIME)  
-    {
       m_context->setContextOption(INTEREST_LIFETIME, (int)lifetime.count());
-    }
   }
 
   ConsumerDataCallback onDataEnteredContext = EMPTY_CALLBACK;
   m_context->getContextOption(DATA_ENTER_CNTX, onDataEnteredContext);
   if (onDataEnteredContext != EMPTY_CALLBACK)
-  {
     onDataEnteredContext(*dynamic_cast<Consumer*>(m_context), data);
-  }
   
   ConsumerInterestCallback onInterestSatisfied = EMPTY_CALLBACK;
   m_context->getContextOption(INTEREST_SATISFIED, onInterestSatisfied);
   if (onInterestSatisfied != EMPTY_CALLBACK)
-  {
     onInterestSatisfied(*dynamic_cast<Consumer*>(m_context), const_cast<Interest&>(interest));
-  }
-  
+
   if (data.getContentType() == MANIFEST_DATA_TYPE)
-  {
     onManifestData(interest, data);
-  }
   else if (data.getContentType() == NACK_DATA_TYPE)
-  {
     onNackData(interest, data);
-  }
   else if (data.getContentType() == CONTENT_DATA_TYPE)
-  {
     onContentData(interest, data);
-  }
   
+  if (m_isRunning){
+    // SENDING NEXT INTERESTS: Control RWIN -> Schedule outgoing interests
+    // 1. Control RWIN
+    //    おそらくonContentData()で既に制御済み
+    //    SegmentFetcherの場合、ここでfinalBlockIDと等しくしていた
+    // 2. Schedule outgoing interests
+    //    Current: pacing or not
+    controlOutgoingInterests()
+  }
+}
+
+void
+ReliableDataRetrieval::increaseWindow()
+{
+  int maxWindowSize = -1;
+  m_context->getContextOption(MAX_WINDOW_SIZE, maxWindowSize);
+  int flowControlProtocol = 1;
+  m_context->getContextOption(FLOW_CONTROL, flowControlProtocol);
+  // [1] Segment fetcher, [2] AIMD, [3] VEGAS 
+  switch(flowControlProtocol)
+  {
+    case 1:
+      //SegmentFetcher();
+      // In responce to the first Interest, try to transmit all Interests, except the first one as a next round 
+      if (m_isFinalBlockNumberDiscovered)
+        m_currentWindowSize = m_finalBlockNumber; 
+      // if there are too many Interests to send, put an upper boundary on it.
+      if (m_currentWindowSize > maxWindowSize) 
+        m_currentWindowSize = maxWindowSize;
+      break;
+
+    case 2:
+      // AIMD
+      if (m_currentWindowSize < m_ssthresh){
+        m_currentWindowSize += m_options.aiStep; //additive increase
+      }
+      else{
+        // congestion avoidance
+        m_currentWindowSize += m_options.aiStep / std::floor(m_currentWindowSize);
+      }
+      break;
+
+    case 3:
+      // VEGAS
+      break;
+
+    default:
+      // default increase method
+      if (m_currentWindowSize < maxWindowSize) // don't expand window above max level
+      {
+        m_currentWindowSize++;
+      }    
+      break;
+  }
+  // After increasing window size:
+  m_context->setContextOption(CURRENT_WINDOW_SIZE, m_currentWindowSize);
+  afterCwndChange(time::steady_clock::now() - getStaleTime(), m_currentWindowSize);
+}
+void
+ReliableDataRetrieval::decreaseWindow()
+{
+  int minWindowSize = -1;
+  m_context->getContextOption(MIN_WINDOW_SIZE, minWindowSize);
+  int flowControlProtocol = 1;
+  m_context->getContextOption(FLOW_CONTROL, flowControlProtocol);
+  // [1] Segment fetcher, [2] AIMD, [3] VEGAS 
+  switch(flowControlProtocol)
+  {
+    case 1:
+      if (m_currentWindowSize > minWindowSize) // don't shrink window below minimum level
+      {
+        m_currentWindowSize = m_currentWindowSize / 2; // cut in half
+        if (m_currentWindowSize == 0)
+          m_currentWindowSize++;
+        m_context->setContextOption(CURRENT_WINDOW_SIZE, m_currentWindowSize);
+      }
+      break;
+    case 2:
+      // AIMD
+      // please refer to RFC 5681, Section 3.1 for the rationale behind it
+      m_ssthresh = std::max(2.0, m_cwnd * m_options.mdCoef); // multiplicative decrease
+      m_cwnd = m_options.resetCwndToInit ? m_options.initCwnd : m_ssthresh;
+      break;
+    case 3:
+      // VEGAS
+      break;
+    default:
+      if (m_currentWindowSize > minWindowSize) // don't shrink window below minimum level
+      {
+        m_currentWindowSize = m_currentWindowSize / 2; // cut in half
+        if (m_currentWindowSize == 0)
+          m_currentWindowSize++;
+      }
+      break;
+  }
+  // After decreasing window size:
+  m_context->setContextOption(CURRENT_WINDOW_SIZE, m_currentWindowSize);
+  afterCwndChange(time::steady_clock::now() - getStaleTime(), m_currentWindowSize);
+}
+
+void
+ReliableDataRetrieval::controlOutgoingInterests()
+{
   int pacing = 0;
   m_context->getContextOption(PACING_INTERVAL, pacing);
-  if (segment == 0) // if it was the first Interest
+  if (pacing > 0)
   {
-    // in a next round try to transmit all Interests, except the first one
-    m_currentWindowSize = m_finalBlockNumber; 
-    
-    int maxWindowSize = -1;
-    m_context->getContextOption(MAX_WINDOW_SIZE, maxWindowSize);
-    
-    // if there are too many Interests to send, put an upper boundary on it.
-    if (m_currentWindowSize > maxWindowSize) 
-    {
-      m_currentWindowSize = maxWindowSize;
-    }
-    
-    //int rtt = -1;
-    //m_context->getContextOption(INTEREST_LIFETIME, rtt);
-    if (pacing > 0){
-      // Seg==0, inFlightとWindowサイズを比較して投げる数を制御
-      int totalInflight = m_interestsInFlight + m_scheduledInterests.size();
-      // totalのinflight数を見て, 合計がRWINを超えないか確認.
-      // m_segNumberは次に投げるセグメント番号が入っている.
-      if (totalInflight < m_currentWindowSize)
-      { 
-        int canInflight = m_currentWindowSize - totalInflight;
-        if (m_isFinalBlockNumberDiscovered)
-        {
-          std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::canInflight: " << canInflight 
-          << ", totalInflight:" << totalInflight << ", scheduled: " << m_scheduledInterests.size() << ", m_segNumber: " << m_segNumber 
-          << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
-          if(m_segNumber + m_scheduledInterests.size() < m_finalBlockNumber)
-          {
-            if(canInflight + m_segNumber + m_scheduledInterests.size() <= m_finalBlockNumber + 1)
-            {
-              paceInterests(canInflight, time::milliseconds(pacing));
-            }
-            else
-            {
-              paceInterests(m_finalBlockNumber - m_segNumber - m_scheduledInterests.size() + 1, time::milliseconds(pacing));
-            }
-          }
-        }
-      }
-    }
-    else
-    {
-      while (m_interestsInFlight < m_currentWindowSize)
+    // totalのinflight数がRWINを超えないか確認. m_segNumber=次に投げるセグメント番号.
+    int totalInflight = m_interestsInFlight + m_scheduledInterests.size();
+    if (totalInflight < m_currentWindowSize)
+    { 
+      // inflight availability
+      int availability = m_currentWindowSize - totalInflight;
+      if (m_isFinalBlockNumberDiscovered)
       {
-        if (m_isFinalBlockNumberDiscovered)
+        std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::availability: " << availability 
+        << ", totalInflight:" << totalInflight << ", scheduled: " << m_scheduledInterests.size() << ", m_segNumber: " << m_segNumber 
+        << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
+        if(m_segNumber + m_scheduledInterests.size() < m_finalBlockNumber)
         {
-          if (m_segNumber <= m_finalBlockNumber)
-          {
-            sendInterest();
-          }
+          // Target: sendInterest when (m_segNumber == final)
+          // m_segNumber + m_scheduled.size() = nextRequestSegmentNumber
+          //  # of interests required for finalBlock = finalBlockNumber - nextRequestSegmentNumber + 1
+          // -> availability is bigger than that number??
+          if(availability <= m_finalBlockNumber - m_segNumber - m_scheduledInterests.size() + 1)
+            paceInterests(availability, time::milliseconds(pacing));
           else
-          {
-            break;
-          }
-        }
-        else
-        {
-          sendInterest();
-        }
-      }
-    }
-  }
-  else
-  {
-    if (m_isRunning)
-    {
-      if (pacing > 0){
-        // Seg==0, inFlightとWindowサイズを比較して投げる数を制御
-        int totalInflight = m_interestsInFlight + m_scheduledInterests.size();
-        // scheduled interestの数を見て, inFlightとの合計がRWINを超えないか確認.
-        if (totalInflight < m_currentWindowSize)
-        {
-          int canInflight = m_currentWindowSize - totalInflight;
-          if (m_isFinalBlockNumberDiscovered)
-          {
-            std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::canInflight: " << canInflight 
-            << ", totalInflight:" << totalInflight << ", scheduled: " << m_scheduledInterests.size() << ", m_segNumber: " << m_segNumber 
-            << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
-            if(m_segNumber + m_scheduledInterests.size() < m_finalBlockNumber){
-              if(canInflight + m_segNumber + m_scheduledInterests.size() <= m_finalBlockNumber + 1)
-              {
-                paceInterests(canInflight, time::milliseconds(pacing));
-              }
-              else
-              {
-                paceInterests(m_finalBlockNumber - m_segNumber -m_scheduledInterests.size() + 1, time::milliseconds(pacing));
-              }
-	    }
-          }
+            paceInterests(m_finalBlockNumber - m_segNumber - m_scheduledInterests.size() + 1, time::milliseconds(pacing));
         }
       }
       else
-      {
-        while (m_interestsInFlight < m_currentWindowSize)
-        {
-          if (m_isFinalBlockNumberDiscovered)
-          {
-            if (m_segNumber <= m_finalBlockNumber)
-            {
-              sendInterest();
-            }
-            else
-            {
-              break;
-            }
-          }
-          else
-          {
-            sendInterest();
-          }
-        }
+        sendInterest();
       }
-    }
   }
+  // No pacing
+  else
+  {
+    while (m_interestsInFlight < m_currentWindowSize)
+    {
+      if (m_isFinalBlockNumberDiscovered)
+      {
+        if (m_segNumber <= m_finalBlockNumber)
+          sendInterest();
+        else
+          break;
+      }
+      else
+        sendInterest();
+    }
+  } 
 }
 
 void
@@ -382,12 +392,13 @@ ReliableDataRetrieval::paceInterests(int nInterests, time::milliseconds timeWind
   //time::nanoseconds interval = time::nanoseconds(timeWindow) / nInterests; 
   time::nanoseconds interval = time::nanoseconds(timeWindow); 
 
-  std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " PACE_INTEREST FOR " << nInterests << " Interests, Interval:" << interval << std::endl; 
+  std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() 
+  << " PACE INTEREST FOR " << nInterests << " Interests, Interval:" << interval << std::endl; 
+  int nextSegment = m_segNumber + m_scheduledInterests.size();
   for (int i = 0; i < nInterests; i++)
   {
-    // schedule next Interest
     std::cout << "Schedule Interests for " << i*interval << std::endl;
-    m_scheduledInterests[m_segNumber + i] = m_scheduler->scheduleEvent(i*interval,
+    m_scheduledInterests[nextSegment + i] = m_scheduler->scheduleEvent(i*interval,
                           bind(&ReliableDataRetrieval::sendInterest, this));
   }
 }
@@ -440,13 +451,7 @@ ReliableDataRetrieval::onManifestData(const ndn::Interest& interest, ndn::Data& 
   {
     checkFastRetransmissionConditions(interest);
   
-    int maxWindowSize = -1;
-    m_context->getContextOption(MAX_WINDOW_SIZE, maxWindowSize);
-    if (m_currentWindowSize < maxWindowSize) // don't expand window above max level
-    {
-      m_currentWindowSize++;
-      m_context->setContextOption(CURRENT_WINDOW_SIZE, m_currentWindowSize);
-    }
+    increaseWindow()
 
     shared_ptr<Manifest> manifest = make_shared<Manifest>(data);
       
@@ -517,7 +522,7 @@ ReliableDataRetrieval::retransmitFreshInterest(const ndn::Interest& interest)
       for(Exclude::const_iterator it = interest.getExclude().begin();
                                   it != interest.getExclude().end(); it++)
       {
-	exclusion.excludeRange(it->from, it->to);
+        exclusion.excludeRange(it->from, it->to);
       }
       /* Old version of exclude API
       for(Exclude::exclude_type::const_iterator it = interest.getExclude().begin();
@@ -758,16 +763,7 @@ ReliableDataRetrieval::onNackData(const ndn::Interest& interest, ndn::Data& data
   {
     checkFastRetransmissionConditions(interest);
   
-    int minWindowSize = -1;
-    m_context->getContextOption(MIN_WINDOW_SIZE, minWindowSize);
-    if (m_currentWindowSize > minWindowSize) // don't shrink window below minimum level
-    {
-      m_currentWindowSize = m_currentWindowSize / 2; // cut in half
-      if (m_currentWindowSize == 0)
-        m_currentWindowSize++;
-        
-      m_context->setContextOption(CURRENT_WINDOW_SIZE, m_currentWindowSize);
-    }
+    decreaseWindow();
     
     shared_ptr<ApplicationNack> nack = make_shared<ApplicationNack>(data);
     
@@ -899,20 +895,15 @@ ReliableDataRetrieval::onContentData(const ndn::Interest& interest, ndn::Data& d
   if (isDataSecure)
   {
     checkFastRetransmissionConditions(interest);
-  
-    int maxWindowSize = -1;
-    m_context->getContextOption(MAX_WINDOW_SIZE, maxWindowSize);
-    if (m_currentWindowSize < maxWindowSize) // don't expand window above max level
-    {
-      m_currentWindowSize++;
-      m_context->setContextOption(CURRENT_WINDOW_SIZE, m_currentWindowSize);
-    }
-    
+
     if (!data.getFinalBlockId().empty())
     {
       m_isFinalBlockNumberDiscovered = true;
       m_finalBlockNumber = data.getFinalBlockId().toSegment();
     }
+
+    // SegmentFetcher requires finalBlockId, this process is placed after getting final Block Id.
+    increaseWindow()
 
     m_receiveBuffer[data.getName().get(-1).toSegment()] = data.shared_from_this();
     reassemble();  
@@ -958,17 +949,7 @@ ReliableDataRetrieval::onTimeout(const ndn::Interest& interest)
       return;
   }
   
-  int minWindowSize = -1;
-  m_context->getContextOption(MIN_WINDOW_SIZE, minWindowSize);
-  if (m_currentWindowSize > minWindowSize) // don't shrink window below minimum level
-  {
-    m_currentWindowSize = m_currentWindowSize / 2; // cut in half
-    
-    if (m_currentWindowSize == 0)
-      m_currentWindowSize++;
-      
-    m_context->setContextOption(CURRENT_WINDOW_SIZE, m_currentWindowSize);
-  }
+  decreaseWindow();
 
   int maxRetransmissions;
   m_context->getContextOption(INTEREST_RETX, maxRetransmissions);

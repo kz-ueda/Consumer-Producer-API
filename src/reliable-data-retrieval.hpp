@@ -25,6 +25,7 @@
 #include "data-retrieval-protocol.hpp"
 #include "selector-helper.hpp"
 #include "rtt-estimator.hpp"
+#include <ndn-cxx/util/signal.hpp>
 
 namespace ndn {
 
@@ -58,7 +59,11 @@ namespace ndn {
 class ReliableDataRetrieval : public DataRetrievalProtocol
 {
 public:
-  ReliableDataRetrieval(Context* context);
+  typedef ExtendedRdrOptions options;
+
+public:
+  ReliableDataRetrieval(Context* context,
+                        const ExtendedRdrOptions& options = Options());
   
   ~ReliableDataRetrieval();
   
@@ -68,9 +73,17 @@ public:
   void
   stop();
 
+  // Extended-RDR
   void
   getNetworkStatistics(double minRTT, double maxRTT, int currentWindow);
-
+  /**
+   * @brief Signals when cwnd changes
+   *
+   * The callback function should be: void(Milliseconds age, double cwnd) where age is the
+   * duration since pipeline starts, and cwnd is the new congestion window size (in segments).
+   */
+  signal::Signal<PipelineInterestsAimd, Milliseconds, int> afterCwndChange;
+  
 private:
 
   void
@@ -127,9 +140,22 @@ private:
   
   void
   removeAllScheduledInterests();
-  
+
+  // extended-RDR
+  void
+  increaseWindow();
+  void
+  decreaseWindow();
+  void
+  controlOutgoingInterests();
   void
   paceInterests(int nInterests, time::milliseconds timeWindow);
+
+  time::steady_clock::TimePoint
+  getStartTime() const
+  {
+    return m_startTime;
+  }
   
 private:
   Scheduler* m_scheduler;
@@ -161,9 +187,25 @@ private:
   std::map<uint64_t, bool> m_receivedSegments;
   std::unordered_map<uint64_t, bool> m_fastRetxSegments;
 
-  // Network Statistics
-  double m_minRTT;
-  double m_maxRTT;
+  // Network Statistics (extended-RDR)
+  const ExtendedRdrOptions m_options;
+  double m_minRTT;    // 
+  double m_maxRTT;    // 
+  double m_ssthresh;  // slow start threshold
+  time::steady_clock::TimePoint m_startTime;
+};
+
+
+class ExtendedRdrOptions{
+public:
+  explicit ExtendedRdrOptions(){}
+  double initCwnd = 1.0; ///< initial congestion window size
+  double initSsthresh = std::numeric_limits<double>::max(); ///< initial slow start threshold
+  double aiStep = 1.0; ///< additive increase step (in segments)
+  double mdCoef = 0.5; ///< multiplicative decrease coefficient
+  time::milliseconds rtoCheckInterval{10}; ///< interval for checking retransmission timer
+  bool disableCwa = false; ///< disable Conservative Window Adaptation
+  bool resetCwndToInit = false; ///< reduce cwnd to initCwnd when loss event occurs
 };
 
 } // namespace ndn

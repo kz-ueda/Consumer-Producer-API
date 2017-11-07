@@ -35,6 +35,7 @@ Consumer::Consumer(Name prefix, int protocol)
   , m_pacingInterval(DEFAULT_PACING_INTERVAL)
   , m_fastRetxThreshold(DEFAULT_FAST_RETX_CONDITION)
   , m_finalBlockNumber(-1)
+  , m_flowControl(DEFAULT_FLOW_CONTROL)
   , m_isAsync(false)
   , m_isLogging(false)
   , m_minSuffixComponents(DEFAULT_MIN_SUFFIX_COMP)
@@ -308,6 +309,12 @@ Consumer::setContextOption(int optionName, int optionValue)
       if (optionValue >= 0)
       {
         m_finalBlockNumber = optionValue;
+        return OPTION_VALUE_SET;
+      }
+    case FLOW_CONTROL:
+      if (optionValue >= 0)
+      {
+        m_flowControl = optionValue;
         return OPTION_VALUE_SET;
       }
 
@@ -612,6 +619,10 @@ Consumer::getContextOption(int optionName, int& optionValue)
       optionValue = m_finalBlockNumber;
       return OPTION_FOUND;
 
+    case FLOW_CONTROL:
+      optionValue = m_flowControl;
+      return OPTION_FOUND;
+      
     default:
       return OPTION_NOT_FOUND;
   }

@@ -52,9 +52,11 @@
 #define INFOMAX_PRIORITY        25  // int
 #define INFOMAX_UPDATE_INTERVAL 26  // int (milliseconds)
 
-#define PACING_INTERVAL 40 // int (milliseconds)
-#define FAST_RETX_THRESHOLD 41 // int
-#define FINAL_BLOCK_NUMBER 42 // int
+// for extended-RDR
+#define PACING_INTERVAL     40  // int (milliseconds)
+#define FAST_RETX_THRESHOLD 41  // int
+#define FINAL_BLOCK_NUMBER  42  // int
+#define FLOW_CONTROL        43  // int
 
 // selectors
 #define MIN_SUFFIX_COMP_S   101 // int
