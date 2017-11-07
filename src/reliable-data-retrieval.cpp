@@ -239,7 +239,7 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
     //    SegmentFetcherの場合、ここでfinalBlockIDと等しくしていた
     // 2. Schedule outgoing interests
     //    Current: pacing or not
-    controlOutgoingInterests()
+    controlOutgoingInterests();
   }
 }
 
@@ -312,8 +312,8 @@ ReliableDataRetrieval::decreaseWindow()
     case 2:
       // AIMD
       // please refer to RFC 5681, Section 3.1 for the rationale behind it
-      m_ssthresh = std::max(2.0, m_cwnd * m_options.mdCoef); // multiplicative decrease
-      m_cwnd = m_options.resetCwndToInit ? m_options.initCwnd : m_ssthresh;
+      m_ssthresh = std::max(2.0, m_currentWindowSize * m_options.mdCoef); // multiplicative decrease
+      m_currentWindowSize = m_options.resetCwndToInit ? m_options.initCwnd : m_ssthresh;
       break;
     case 3:
       // VEGAS

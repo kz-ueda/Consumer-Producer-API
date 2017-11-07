@@ -72,7 +72,7 @@ public:
 class ReliableDataRetrieval : public DataRetrievalProtocol
 {
 public:
-  typedef time::duration<double,time::milliseconds::period> ndn::Milliseconds
+  typedef time::duration<double,time::milliseconds::period> Milliseconds;
 public:
   ReliableDataRetrieval(Context* context,
                         const ExtendedRdrOptions& options = ExtendedRdrOptions());
