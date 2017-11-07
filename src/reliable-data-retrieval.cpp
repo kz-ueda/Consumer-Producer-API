@@ -451,7 +451,7 @@ ReliableDataRetrieval::onManifestData(const ndn::Interest& interest, ndn::Data& 
   {
     checkFastRetransmissionConditions(interest);
   
-    increaseWindow()
+    increaseWindow();
 
     shared_ptr<Manifest> manifest = make_shared<Manifest>(data);
       
@@ -903,7 +903,7 @@ ReliableDataRetrieval::onContentData(const ndn::Interest& interest, ndn::Data& d
     }
 
     // SegmentFetcher requires finalBlockId, this process is placed after getting final Block Id.
-    increaseWindow()
+    increaseWindow();
 
     m_receiveBuffer[data.getName().get(-1).toSegment()] = data.shared_from_this();
     reassemble();  
