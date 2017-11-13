@@ -198,8 +198,8 @@ private:
   double m_ssthresh;  // slow start threshold
   time::steady_clock::TimePoint m_startTime;
   bool m_isPacing;
+  bool m_isLogging;
 };
-
 } // namespace ndn
 
 #endif // RELIABLE_DATA_RETRIEVAL_HPP

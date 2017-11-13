@@ -36,12 +36,14 @@ ReliableDataRetrieval::ReliableDataRetrieval(Context* context,
   , m_segNumber(0)
   , m_options(options)
   , m_isPacing(false)
+  , m_isLogging(false)
   , m_minRTT(0)
   , m_maxRTT(0)
   , m_ssthresh(m_options.initSsthresh)
 {
   context->getContextOption(FACE_CONFIG, m_face);
   m_scheduler = new Scheduler(m_face->getIoService());
+  m_context->getContextOption(LOGGING, isLogging);
 }
 
 ReliableDataRetrieval::~ReliableDataRetrieval()
@@ -149,11 +151,11 @@ ReliableDataRetrieval::sendInterest()
   //  return;
   
   m_interestsInFlight++;
-  bool isLogging = false;
-  m_context->getContextOption(LOGGING, isLogging);
-  if(isLogging)
+  if(m_isLogging)
+  {
     std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << ", " << time::steady_clock::now() - getStartTime()
     << " RDR::sendInterest::inflight = " << m_interestsInFlight << ", windowSize = " << m_currentWindowSize << ", name = " << interest.getName().toUri() << std::endl; 
+  }
   m_interestRetransmissions[m_segNumber] = 0;
   m_interestTimepoints[m_segNumber] = time::steady_clock::now();
   m_expressedInterests[m_segNumber] = m_face->expressInterest(interest,
@@ -190,15 +192,14 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
   uint64_t segment = interest.getName().get(-1).toSegment();
   m_expressedInterests.erase(segment);
 
-  bool isLogging = false;
-  m_context->getContextOption(LOGGING, isLogging);
-  
   if (m_interestTimepoints.find(segment) != m_interestTimepoints.end())
   {
     time::steady_clock::duration duration = time::steady_clock::now() - m_interestTimepoints[segment];
-    if(isLogging)
+    if(m_isLogging)
+    {
       std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << ", " << time::steady_clock::now() - getStartTime()
       << " RDR::onData::RTT = " << duration << ", name = " << data.getName().toUri() << std::endl; 
+    }
     m_rttEstimator.addMeasurement(boost::chrono::duration_cast<boost::chrono::microseconds>(duration));
     // Update min/max RTT
     double m = static_cast<double>(duration.count());
@@ -352,9 +353,11 @@ ReliableDataRetrieval::controlOutgoingInterests()
         int availability = m_currentWindowSize - totalInflight;
         if (m_isFinalBlockNumberDiscovered)
         {
-          std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::availability: " << availability 
-          << ", totalInflight:" << totalInflight << ", scheduled: " << m_scheduledInterests.size() << ", m_segNumber: " << m_segNumber 
-          << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
+          if(m_isLogging){
+            std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << ", " << time::steady_clock::now() - getStartTime()
+            << " RDR::onData::availability: " << availability << ", totalInflight:" << totalInflight << ", scheduled: " << m_scheduledInterests.size()
+            << ", m_segNumber: " << m_segNumber << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
+          }
           if(m_segNumber + m_scheduledInterests.size() <= m_finalBlockNumber)
           {
             // Target: sendInterest when (m_segNumber == final)
@@ -400,13 +403,17 @@ ReliableDataRetrieval::paceInterests(int nInterests, time::milliseconds timeWind
     return;
   //time::nanoseconds interval = time::nanoseconds(timeWindow) / nInterests; 
   time::nanoseconds interval = time::nanoseconds(timeWindow); 
-
-  std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() 
-  << " PACE INTEREST FOR " << nInterests << " Interests, Interval:" << interval << std::endl; 
+  
+  if(m_isLogging){
+    std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() 
+    << " PACE INTEREST FOR " << nInterests << " Interests, Interval:" << interval << std::endl; 
+  }
   int nextSegment = m_segNumber + m_scheduledInterests.size();
   for (int i = 0; i < nInterests; i++)
   {
-    std::cout << "Schedule Interests for " << i*interval << std::endl;
+    if(m_isLogging){
+      std::cout << "Schedule Interests for " << i*interval << std::endl;
+    }
     m_scheduledInterests[nextSegment + i] = m_scheduler->scheduleEvent(i*interval,
                           bind(&ReliableDataRetrieval::sendInterest, this));
   }
@@ -1147,8 +1154,10 @@ ReliableDataRetrieval::checkFastRetransmissionConditions(const ndn::Interest& in
             m_context->getContextOption(FAST_RETX_THRESHOLD, fastRetxThreshold);
             if (nOutOfOrderSegments == fastRetxThreshold)
             {
-              std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " OUT_OF_ORDER HAS OCCURED. received:" 
-              << segNumber << ", OutOfOrderSegments:" << (int)nOutOfOrderSegments << ", PossiblyLostSegment:" << possiblyLostSegment << std::endl;
+              if(m_isLogging){
+                std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << ", " << time::steady_clock::now() - getStartTime()
+                << " OutOfOrder, Received segment:" << segNumber << ", OutOfOrderSegments:" << (int)nOutOfOrderSegments << ", PossiblyLostSegment:" << possiblyLostSegment << std::endl;
+              }
               m_fastRetxSegments[possiblyLostSegment] = true;
               fastRetransmit(interest, possiblyLostSegment);
             }
@@ -1204,8 +1213,11 @@ ReliableDataRetrieval::fastRetransmit(const ndn::Interest& interest, uint64_t se
     //retransmit
     m_interestsInFlight++;
     m_interestRetransmissions[segNumber]++;
-    //std::cout << "fast retx" << std::endl;
-    std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::fastReTx::inflight = " << m_interestsInFlight << ", windowSize = " << m_currentWindowSize << ", name = " << retxInterest.getName().toUri() << std::endl; 
+    if(m_isLogging)
+    {
+      std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << ", " << time::steady_clock::now() - getStartTime()
+      << " RDR::fastReTx::inflight = " << m_interestsInFlight << ", windowSize = " << m_currentWindowSize << ", name = " << retxInterest.getName().toUri() << std::endl; 
+    }
     m_expressedInterests[segNumber] = m_face->expressInterest(retxInterest,
                                           bind(&ReliableDataRetrieval::onData, this, _1, _2),
                                           bind(&ReliableDataRetrieval::onTimeout, this, _1));
