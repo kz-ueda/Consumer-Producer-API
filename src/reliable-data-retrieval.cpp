@@ -41,9 +41,9 @@ ReliableDataRetrieval::ReliableDataRetrieval(Context* context,
   , m_maxRTT(0)
   , m_ssthresh(m_options.initSsthresh)
 {
+  m_context->getContextOption(LOGGING, m_isLogging);
   context->getContextOption(FACE_CONFIG, m_face);
   m_scheduler = new Scheduler(m_face->getIoService());
-  m_context->getContextOption(LOGGING, isLogging);
 }
 
 ReliableDataRetrieval::~ReliableDataRetrieval()
