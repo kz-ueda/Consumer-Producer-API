@@ -41,7 +41,6 @@ ReliableDataRetrieval::ReliableDataRetrieval(Context* context,
   , m_maxRTT(0)
   , m_ssthresh(m_options.initSsthresh)
 {
-  m_context->getContextOption(LOGGING, m_isLogging);
   context->getContextOption(FACE_CONFIG, m_face);
   m_scheduler = new Scheduler(m_face->getIoService());
 }
@@ -68,6 +67,7 @@ ReliableDataRetrieval::start()
   m_unverifiedSegments.clear();
   m_verifiedManifests.clear();
   m_startTime = time::steady_clock::now();
+  m_context->getContextOption(LOGGING, m_isLogging);
   
   // Inport finalBlockNumber from context
   int finalBlockFromContext = -1;
