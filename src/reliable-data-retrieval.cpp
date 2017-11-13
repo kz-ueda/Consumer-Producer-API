@@ -152,7 +152,8 @@ ReliableDataRetrieval::sendInterest()
   bool isLogging = false;
   m_context->getContextOption(LOGGING, isLogging);
   if(isLogging)
-    std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::sendInterest::inflight = " << m_interestsInFlight << ", windowSize = " << m_currentWindowSize << ", name = " << interest.getName().toUri() << std::endl; 
+    std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << ", " << time::steady_clock::now() - getStartTime()
+    << " RDR::sendInterest::inflight = " << m_interestsInFlight << ", windowSize = " << m_currentWindowSize << ", name = " << interest.getName().toUri() << std::endl; 
   m_interestRetransmissions[m_segNumber] = 0;
   m_interestTimepoints[m_segNumber] = time::steady_clock::now();
   m_expressedInterests[m_segNumber] = m_face->expressInterest(interest,
@@ -196,7 +197,8 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
   {
     time::steady_clock::duration duration = time::steady_clock::now() - m_interestTimepoints[segment];
     if(isLogging)
-      std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << " RDR::onData::RTT = " << duration << ", name = " << data.getName().toUri() << std::endl; 
+      std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << ", " << time::steady_clock::now() - getStartTime()
+      << " RDR::onData::RTT = " << duration << ", name = " << data.getName().toUri() << std::endl; 
     m_rttEstimator.addMeasurement(boost::chrono::duration_cast<boost::chrono::microseconds>(duration));
     // Update min/max RTT
     double m = static_cast<double>(duration.count());
