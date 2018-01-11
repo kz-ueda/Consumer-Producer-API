@@ -91,6 +91,8 @@ ReliableDataRetrieval::start()
     // Segment fetcher should change RWIN at the startup, or its RWIN is set to previous RWIN...
     int flowControlProtocol = 1;
     m_context->getContextOption(FLOW_CONTROL, flowControlProtocol);
+    int maxWindowSize = 1;
+    m_context->getContextOption(MAX_WINDOW_SIZE, maxWindowSize);
     if (flowControlProtocol == 1){
       if (m_isFinalBlockNumberDiscovered)
         m_currentWindowSize = m_finalBlockNumber; 
@@ -263,7 +265,7 @@ ReliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
 void
 ReliableDataRetrieval::increaseWindow()
 {
-  int maxWindowSize = -1;
+  int maxWindowSize = 1;
   m_context->getContextOption(MAX_WINDOW_SIZE, maxWindowSize);
   int flowControlProtocol = 1;
   m_context->getContextOption(FLOW_CONTROL, flowControlProtocol);
