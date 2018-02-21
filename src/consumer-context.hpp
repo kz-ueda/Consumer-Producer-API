@@ -189,6 +189,12 @@ public:
   int
   getContextOption(int optionName, TreeNode& optionValue);
 
+  /*
+  * Name getters
+  * Return prefix or suffix
+  */
+  Name getPrefix();
+  Name getSuffix();
 private: 
 
   void

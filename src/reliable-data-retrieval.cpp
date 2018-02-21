@@ -58,7 +58,6 @@ ReliableDataRetrieval::start()
   m_isFinalBlockNumberDiscovered = false;
   m_finalBlockNumber = std::numeric_limits<uint64_t>::max();
   m_segNumber = 0;
-  m_interestsInFlight = 0;
   m_lastReassembledSegment = 0;
   m_contentBufferSize = 0;
   m_contentBuffer.clear();
@@ -83,16 +82,13 @@ ReliableDataRetrieval::start()
   m_context->getContextOption(CURRENT_WINDOW_SIZE, currentWindowSize);
   if (currentWindowSize > 0)
   {
-    if (m_isFinalBlockNumberDiscovered && currentWindowSize > m_finalBlockNumber)
-      m_currentWindowSize = m_finalBlockNumber;
-    else
-      m_currentWindowSize = currentWindowSize;
+    m_currentWindowSize = currentWindowSize;
 
-    // Segment fetcher should change RWIN at the startup, or its RWIN is set to previous RWIN...
     int flowControlProtocol = 1;
     m_context->getContextOption(FLOW_CONTROL, flowControlProtocol);
     int maxWindowSize = 1;
     m_context->getContextOption(MAX_WINDOW_SIZE, maxWindowSize);
+    // Segment fetcher should change RWIN at the startup, or its RWIN is set to previous RWIN...
     if (flowControlProtocol == 1){
       if (m_isFinalBlockNumberDiscovered)
         m_currentWindowSize = m_finalBlockNumber; 
@@ -102,14 +98,15 @@ ReliableDataRetrieval::start()
   }
   else
   {
+    // set currentWindowSize to default value
     int minWindowSize = -1;
     m_context->getContextOption(MIN_WINDOW_SIZE, minWindowSize);
     m_currentWindowSize = minWindowSize;
   }
 
   // RWIN has already configured -> controlOutgoingInterests
-  // Default: inflight==0, currentRWIN == -1
-  if (m_interestsInFlight < m_currentWindowSize)
+  // Default: inflight==0, currentRWIN == min
+  if (m_currentWindowSize > m_interestInFlight)
   {
     controlOutgoingInterests();
   }
@@ -184,6 +181,7 @@ void
 ReliableDataRetrieval::stop()
 {
   m_isRunning = false;
+  m_interestInFlight = 0;
   removeAllPendingInterests();
   removeAllScheduledInterests();
 }
@@ -395,7 +393,7 @@ ReliableDataRetrieval::controlOutgoingInterests()
   // No pacing
   else
   {
-    while (m_interestsInFlight < m_currentWindowSize)
+    while (m_currentWindowSize > m_interestsInFlight)
     {
       if (m_isFinalBlockNumberDiscovered)
       {
