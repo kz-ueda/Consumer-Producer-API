@@ -59,13 +59,16 @@ public:
    */
   virtual int
   setContextOption(int optionName, int optionValue) = 0;
-  
+
   virtual int
-  setContextOption(int optionName, size_t optionValue) = 0;
+  setContextOption(int optionName, double optionValue) = 0;
   
   virtual int
   setContextOption(int optionName, bool optionValue) = 0;
-  
+
+  virtual int
+  setContextOption(int optionName, size_t optionValue) = 0;
+    
   virtual int
   setContextOption(int optionName, Name optionValue) = 0;
   
@@ -106,10 +109,13 @@ public:
   getContextOption(int optionName, int& optionValue) = 0;
   
   virtual int
-  getContextOption(int optionName, size_t& optionValue) = 0;
+  getContextOption(int optionName, double& optionValue) = 0;
 
   virtual int
   getContextOption(int optionName, bool& optionValue) = 0;
+
+  virtual int
+  getContextOption(int optionName, size_t& optionValue) = 0;
   
   virtual int
   getContextOption(int optionName, Name& optionValue) = 0;
