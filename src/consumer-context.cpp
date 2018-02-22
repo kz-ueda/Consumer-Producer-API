@@ -173,10 +173,6 @@ Consumer::setContextOption(int optionName, int optionValue)
       m_nMaxExcludedDigests = optionValue;
       return OPTION_VALUE_SET;
     
-    case CURRENT_WINDOW_SIZE:
-      m_currentWindowSize = optionValue;
-      return OPTION_VALUE_SET;
-    
     case RCV_BUF_SIZE:
       m_receiveBufferSize = optionValue;
       return OPTION_VALUE_SET;
@@ -324,18 +320,14 @@ Consumer::setContextOption(int optionName, int optionValue)
 }
 
 int
-Consumer::setContextOption(int optionName, size_t optionValue)
+Consumer::setContextOption(int optionName, double optionValue)
 {
   switch (optionName)
   {
-    case RCV_BUF_SIZE:
-      m_receiveBufferSize = optionValue;
+    case CURRENT_WINDOW_SIZE:
+      m_currentWindowSize = optionValue;
       return OPTION_VALUE_SET;
-
-    case SND_BUF_SIZE:
-      m_sendBufferSize = optionValue;
-      return OPTION_VALUE_SET;
-  
+      
     default:
       return OPTION_VALUE_NOT_SET;
   }
@@ -384,7 +376,25 @@ Consumer::setContextOption(int optionName, bool optionValue)
       return OPTION_VALUE_NOT_SET;
   }
 }
+
+int
+Consumer::setContextOption(int optionName, size_t optionValue)
+{
+  switch (optionName)
+  {
+    case RCV_BUF_SIZE:
+      m_receiveBufferSize = optionValue;
+      return OPTION_VALUE_SET;
+
+    case SND_BUF_SIZE:
+      m_sendBufferSize = optionValue;
+      return OPTION_VALUE_SET;
   
+    default:
+      return OPTION_VALUE_NOT_SET;
+  }
+}
+
 int
 Consumer::setContextOption(int optionName, Name optionValue)
 {
@@ -574,11 +584,7 @@ Consumer::getContextOption(int optionName, int& optionValue)
     case MAX_EXCLUDED_DIGESTS:
       optionValue = m_nMaxExcludedDigests;
       return OPTION_FOUND;
-    
-    case CURRENT_WINDOW_SIZE:
-      optionValue = m_currentWindowSize;
-      return OPTION_FOUND;
-  
+      
     case RCV_BUF_SIZE:
       optionValue = m_receiveBufferSize;
       return OPTION_FOUND;
@@ -623,6 +629,20 @@ Consumer::getContextOption(int optionName, int& optionValue)
       optionValue = m_flowControl;
       return OPTION_FOUND;
       
+    default:
+      return OPTION_NOT_FOUND;
+  }
+}
+
+int
+Consumer::getContextOption(int optionName, double& optionValue)
+{
+  switch (optionName)
+  {
+    case CURRENT_WINDOW_SIZE:
+      optionValue = m_currentWindowSize;
+      return OPTION_FOUND;
+
     default:
       return OPTION_NOT_FOUND;
   }

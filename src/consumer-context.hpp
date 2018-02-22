@@ -97,6 +97,9 @@ public:
    */
   int
   setContextOption(int optionName, int optionValue);
+
+  int
+  setContextOption(int optionName, double optionValue)
   
   int
   setContextOption(int optionName, bool optionValue);
@@ -144,6 +147,9 @@ public:
   int
   getContextOption(int optionName, int& optionValue);
   
+  int
+  getContextOption(int optionName, double& optionValue);
+
   int
   getContextOption(int optionName, size_t& optionValue);
 
@@ -224,7 +230,7 @@ private:
   
   int m_minWindowSize;
   int m_maxWindowSize;
-  int m_currentWindowSize;
+  double m_currentWindowSize;
   int m_nMaxRetransmissions;
   int m_nMaxExcludedDigests;
   size_t m_sendBufferSize;

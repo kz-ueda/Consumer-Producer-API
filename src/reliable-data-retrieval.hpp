@@ -86,7 +86,7 @@ public:
 
   // Extended-RDR
   void
-  getNetworkStatistics(double minRTT, double maxRTT, int currentWindow);
+  getNetworkStatistics(double minRTT, double maxRTT, double currentWindow);
   
 private:
 
@@ -173,7 +173,7 @@ private:
   size_t m_contentBufferSize;
   
   // transmission variables
-  int m_currentWindowSize;
+  double m_currentWindowSize;
   int m_interestsInFlight;
   uint64_t m_segNumber;
   std::unordered_map<uint64_t, int> m_interestRetransmissions; // by segment number

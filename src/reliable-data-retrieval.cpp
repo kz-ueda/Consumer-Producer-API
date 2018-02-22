@@ -40,6 +40,7 @@ ReliableDataRetrieval::ReliableDataRetrieval(Context* context,
   , m_minRTT(0)
   , m_maxRTT(0)
   , m_ssthresh(m_options.initSsthresh)
+  , m_startTime(time::steady_clock::now())
 {
   context->getContextOption(FACE_CONFIG, m_face);
   m_scheduler = new Scheduler(m_face->getIoService());
@@ -65,7 +66,6 @@ ReliableDataRetrieval::start()
   m_receiveBuffer.clear();
   m_unverifiedSegments.clear();
   m_verifiedManifests.clear();
-  m_startTime = time::steady_clock::now();
   m_context->getContextOption(LOGGING, m_isLogging);
   
   // Inport finalBlockNumber from context
@@ -78,7 +78,7 @@ ReliableDataRetrieval::start()
   }  
 
   // this is to support window size "inheritance" between consume calls
-  int currentWindowSize = -1;
+  double currentWindowSize = -1;
   m_context->getContextOption(CURRENT_WINDOW_SIZE, currentWindowSize);
   if (currentWindowSize > 0)
   {
@@ -360,7 +360,7 @@ ReliableDataRetrieval::controlOutgoingInterests()
     {
       // totalのinflight数がRWINを超えないか確認. m_segNumber=次に投げるセグメント番号.
       int totalInflight = m_interestsInFlight + m_scheduledInterests.size();
-      if (totalInflight < m_currentWindowSize)
+      if (m_currentWindowSize > totalInflight)
       { 
         // inflight availability
         int availability = m_currentWindowSize - totalInflight;
@@ -1056,7 +1056,7 @@ ReliableDataRetrieval::copyContent(Data& data)
     }
     
     //reduce window size to prevent its speculative growth in case when consume() is called in loop
-    int currentWindowSize = -1;
+    double currentWindowSize = -1;
     m_context->getContextOption(CURRENT_WINDOW_SIZE, currentWindowSize);
     if (currentWindowSize > m_finalBlockNumber)
     {

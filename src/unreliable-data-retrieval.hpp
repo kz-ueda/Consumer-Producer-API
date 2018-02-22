@@ -73,7 +73,7 @@ private:
   uint64_t m_finalBlockNumber;
   uint64_t m_segNumber;
   
-  int m_currentWindowSize;
+  double m_currentWindowSize;
   int m_interestsInFlight;
   
   std::unordered_map<uint64_t, const PendingInterestId*> m_expressedInterests; // by segment number

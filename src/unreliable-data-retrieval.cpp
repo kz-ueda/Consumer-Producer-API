@@ -236,7 +236,7 @@ UnreliableDataRetrieval::onData(const ndn::Interest& interest, ndn::Data& data)
     m_isRunning = false;
     
     //reduce window size to prevent its speculative growth in case when consume() is called in loop
-    int currentWindowSize = -1;
+    double currentWindowSize = -1;
     m_context->getContextOption(CURRENT_WINDOW_SIZE, currentWindowSize);
     if (currentWindowSize > m_finalBlockNumber)
     {
