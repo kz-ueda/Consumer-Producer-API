@@ -44,6 +44,7 @@ ReliableDataRetrieval::ReliableDataRetrieval(Context* context,
 {
   context->getContextOption(FACE_CONFIG, m_face);
   m_scheduler = new Scheduler(m_face->getIoService());
+  m_context->getContextOption(LOGGING, m_isLogging);
 }
 
 ReliableDataRetrieval::~ReliableDataRetrieval()
@@ -66,7 +67,6 @@ ReliableDataRetrieval::start()
   m_receiveBuffer.clear();
   m_unverifiedSegments.clear();
   m_verifiedManifests.clear();
-  m_context->getContextOption(LOGGING, m_isLogging);
   
   // Inport finalBlockNumber from context
   int finalBlockFromContext = -1;
@@ -187,7 +187,7 @@ ReliableDataRetrieval::stop()
 }
 
 void
-ReliableDataRetrieval::getNetworkStatistics(double minRTT, double maxRTT, int currentWindow)
+ReliableDataRetrieval::getNetworkStatistics(double minRTT, double maxRTT, double currentWindow)
 {
   minRTT = m_minRTT;
   maxRTT = m_maxRTT;
@@ -415,7 +415,7 @@ ReliableDataRetrieval::paceInterests(int nInterests, time::milliseconds timeWind
   if (nInterests <= 0)
     return;
   //time::nanoseconds interval = time::nanoseconds(timeWindow) / nInterests; 
-  time::nanoseconds interval = time::nanoseconds(timeWindow); 
+  time::nanoseconds interval = time::nanoseconds(timeWindow);
   
   if(m_isLogging){
     std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() 
