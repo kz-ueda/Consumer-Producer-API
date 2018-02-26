@@ -22,6 +22,9 @@
 #ifndef CONTEXT_DEFAULT_VALUES_HPP
 #define CONTEXT_DEFAULT_VALUES_HPP
 
+#include <ndn-cxx/encoding/tlv.hpp>
+#include <ndn-cxx/name.hpp>
+
 // this file contains various default values
 // numbers here are not unique
 
@@ -35,15 +38,15 @@
 #define BBR 4
 
 // forwarding strategies
-const ndn::Name BEST_ROUTE("/localhost/nfd/strategy/best-route");
-const ndn::Name BROADCAST("/localhost/nfd/strategy/broadcast");
-const ndn::Name CLIENT_CONTROL("/localhost/nfd/strategy/client-control");
-//const ndn::Name NCC("/localhost/nfd/strategy/ncc");
+const ndn::Name BEST_ROUTE("ndn:/localhost/nfd/strategy/best-route");
+const ndn::Name BROADCAST("ndn:/localhost/nfd/strategy/broadcast");
+const ndn::Name CLIENT_CONTROL("ndn:/localhost/nfd/strategy/client-control");
+//const ndn::Name NCC("ndn:/localhost/nfd/strategy/ncc");
 
 // default values
-#define DEFAULT_INTEREST_LIFETIME 200  // milliseconds
-#define DEFAULT_DATA_FRESHNESS 100000  // milliseconds ~= 100 seconds
-#define DEFAULT_DATA_PACKET_SIZE 2048  // bytes
+#define DEFAULT_INTEREST_LIFETIME_API 200 // milliseconds
+#define DEFAULT_DATA_FRESHNESS 100000 // milliseconds ~= 100 seconds
+#define DEFAULT_DATA_PACKET_SIZE 2048 // bytes
 #define DEFAULT_INTEREST_SCOPE 2
 #define DEFAULT_MIN_SUFFIX_COMP -1
 #define DEFAULT_MAX_SUFFIX_COMP -1
@@ -56,10 +59,6 @@ const ndn::Name CLIENT_CONTROL("/localhost/nfd/strategy/client-control");
 #define DEFAULT_DIGEST_SIZE 32                // of bytes
 #define DEFAULT_FAST_RETX_CONDITION 3         // of out-of-order segments
 
-// default parameters for RDR
-#define DEFAULT_PACING_INTERVAL 100          // 100 milisec for time window
-#define DEFAULT_FLOW_CONTROL    1            // 1: segment fetcher, 2: AIMD, 3: VEGAS, ...
-
 // maximum allowed values
 #define CONSUMER_MIN_RETRANSMISSIONS 0
 #define CONSUMER_MAX_RETRANSMISSIONS 32
@@ -67,16 +66,16 @@ const ndn::Name CLIENT_CONTROL("/localhost/nfd/strategy/client-control");
 #define MAX_DATA_PACKET_SIZE 8096
 
 // set/getcontextoption values
-#define OPTION_FOUND          0
-#define OPTION_NOT_FOUND      1
-#define OPTION_VALUE_SET      2
-#define OPTION_VALUE_NOT_SET  3
-#define OPTION_DEFAULT_VALUE  666 // some rare number
+#define OPTION_FOUND 0
+#define OPTION_NOT_FOUND 1
+#define OPTION_VALUE_SET 2
+#define OPTION_VALUE_NOT_SET 3
+#define OPTION_DEFAULT_VALUE 666 // some rare number
 
 // misc. values
 #define PRODUCER_OPERATION_FAILED 10
 #define CONSUMER_READY 0
-#define CONSUMER_BUSY  1
+#define CONSUMER_BUSY 1
 
 #define REGISTRATION_NOT_ATTEMPTED 0
 #define REGISTRATION_SUCCESS 1
@@ -90,16 +89,16 @@ const ndn::Name CLIENT_CONTROL("/localhost/nfd/strategy/client-control");
 #define RSA_256 2
 
 // Negative acknowledgement related constants
-#define NACK_DATA_TYPE  tlv::ContentType_Nack
+#define NACK_DATA_TYPE tlv::ContentType_Nack
 
-#define NACK_DELAY                  1
-#define NACK_INTEREST_NOT_VERIFIED  2
+#define NACK_DELAY 1
+#define NACK_INTEREST_NOT_VERIFIED 2
 
 // Manifest related constants
-#define MANIFEST_DATA_TYPE    tlv::ContentType_Manifest
+#define MANIFEST_DATA_TYPE tlv::ContentType_Manifest
 
 #define FULL_NAME_ENUMERATION 0
-#define DIGEST_ENUMERATION    1
+#define DIGEST_ENUMERATION 1
 
 #define CONTENT_DATA_TYPE tlv::ContentType_Blob
 
@@ -107,12 +106,15 @@ const ndn::Name CLIENT_CONTROL("/localhost/nfd/strategy/client-control");
 #define INFOMAX_DEFAULT_LIST_SIZE 10
 #define INFOMAX_INTEREST_TAG "InfoMax"
 #define INFOMAX_META_INTEREST_TAG "MetaInfo"
-#define INFOMAX_DEFAULT_UPDATE_INTERVAL 5000     // 5 seconds
+#define INFOMAX_DEFAULT_UPDATE_INTERVAL 5000 // 5 seconds
 
 // InfoMax prioritizer
 #define INFOMAX_NONE 0
 #define INFOMAX_SIMPLE_PRIORITY 1
 #define INFOMAX_MERGE_PRIORITY 2
 
+// RDR parameters
+#define DEFAULT_PACING_INTERVAL 100          // 100 milisec for time window
+#define DEFAULT_FLOW_CONTROL    1            // 1: segment fetcher, 2: AIMD, 3: VEGAS, ...
 
 #endif

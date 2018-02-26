@@ -1,11 +1,11 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
-/**
- * Copyright (c) 2014-2016 Regents of the University of California.
+/*
+ * Copyright (c) 2014-2017 Regents of the University of California.
  *
  * This file is part of Consumer/Producer API library.
  *
- * Consumer/Producer API library library is free software: you can redistribute it and/or 
- * modify it under the terms of the GNU Lesser General Public License as published by the Free 
+ * Consumer/Producer API library library is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation, either version 3 of the License, or (at your option) any later version.
  *
  * Consumer/Producer API library is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -23,10 +23,8 @@
 #define NFD_TABLE_CS_ENTRY_HPP
 
 #include "common.hpp"
-#include <ndn-cxx/util/crypto.hpp>
 
 namespace ndn {
-
 namespace cs {
 
 class Entry;
@@ -36,7 +34,7 @@ class Entry;
 class Entry : noncopyable
 {
 public:
-  typedef std::map<int, std::list<Entry*>::iterator > LayerIterators;
+  typedef std::map<int, std::list<Entry*>::iterator> LayerIterators;
 
   Entry();
 
@@ -123,8 +121,7 @@ private:
   LayerIterators m_layerIterators;
 };
 
-inline
-Entry::Entry()
+inline Entry::Entry()
 {
 }
 
@@ -159,6 +156,6 @@ Entry::getIterators() const
 }
 
 } // namespace cs
-} // namespace nfd
+} // namespace ndn
 
 #endif // NFD_TABLE_CS_ENTRY_HPP
