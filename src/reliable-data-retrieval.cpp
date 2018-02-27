@@ -35,12 +35,12 @@ ReliableDataRetrieval::ReliableDataRetrieval(Context* context,
   , m_interestsInFlight(0)
   , m_segNumber(0)
   , m_options(options)
-  , m_isPacing(false)
-  , m_isLogging(false)
   , m_minRTT(0)
   , m_maxRTT(0)
   , m_ssthresh(m_options.initSsthresh)
   , m_startTime(time::steady_clock::now())
+  , m_isPacing(false)
+  , m_isLogging(false)
 {
   context->getContextOption(FACE_CONFIG, m_face);
   m_scheduler = new Scheduler(m_face->getIoService());
@@ -106,7 +106,7 @@ ReliableDataRetrieval::start()
 
   // RWIN has already configured -> controlOutgoingInterests
   // Default: inflight==0, currentRWIN == min
-  if (m_currentWindowSize > m_interestInFlight)
+  if (m_currentWindowSize > m_interestsInFlight)
   {
     controlOutgoingInterests();
   }
@@ -181,7 +181,7 @@ void
 ReliableDataRetrieval::stop()
 {
   m_isRunning = false;
-  m_interestInFlight = 0;
+  m_interestsInFlight = 0;
   removeAllPendingInterests();
   removeAllScheduledInterests();
 }
@@ -363,7 +363,7 @@ ReliableDataRetrieval::controlOutgoingInterests()
       if (m_currentWindowSize > totalInflight)
       { 
         // inflight availability
-        int availability = m_currentWindowSize - totalInflight;
+        unsigned int availability = m_currentWindowSize - totalInflight;
         if (m_isFinalBlockNumberDiscovered)
         {
           if(m_isLogging){

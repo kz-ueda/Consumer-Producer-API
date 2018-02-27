@@ -99,7 +99,7 @@ public:
   setContextOption(int optionName, int optionValue);
 
   int
-  setContextOption(int optionName, double optionValue)
+  setContextOption(int optionName, double optionValue);
   
   int
   setContextOption(int optionName, bool optionValue);
