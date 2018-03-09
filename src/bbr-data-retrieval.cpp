@@ -78,8 +78,8 @@ BBRDataRetrieval::start()
   int finalBlockNumberFromContext = -1;
   m_context->getContextOption(FINAL_BLOCK_NUMBER, finalBlockNumberFromContext);
   if(finalBlockNumberFromContext > 0){
-      m_finalBlockNumber = finalBlockNumberFromContext;
-      m_isFinalBlockNumberDiscovered = true;
+    m_finalBlockNumber = finalBlockNumberFromContext;
+    m_isFinalBlockNumberDiscovered = true;
   }
 
   // Window size inheritance using context
@@ -88,30 +88,27 @@ BBRDataRetrieval::start()
   double windowSizeFromContext = -1;
   m_context->getContextOption(CURRENT_WINDOW_SIZE, windowSizeFromContext);
   if (windowSizeFromContext > 0){
-      m_currentWindowSize = windowSizeFromContext;
-
-      int maxWindowFromContext = 1;
-      m_context->getContextOption(MAX_WINDOW_SIZE, maxWindowFromContext);
-      // check flowcontrol protocol to determine first window size.
-      // if flowcontrol is segmentFetcher (1), set window size to final block num.
-      int flowControlFromContext = 1;
-      m_context->getContextOption(FLOW_CONTROL, flowControlFromContext);
-      if(flowControlFromContext == 1){
-        if (m_isFinalBlockNumberDiscovered)
-            m_currentWindowSize = m_finalBlockNumber;
-        if (m_currentWindowSize > maxWindowFromContext)
-            m_currentWindowSize = maxWindowFromContext;
-      }
+    m_currentWindowSize = windowSizeFromContext;
+    int maxWindowFromContext = 1;
+    m_context->getContextOption(MAX_WINDOW_SIZE, maxWindowFromContext);
+    // check flowcontrol protocol to determine first window size.
+    // if flowcontrol is segmentFetcher (1), set window size to final block num.
+    int flowControlFromContext = 1;
+    m_context->getContextOption(FLOW_CONTROL, flowControlFromContext);
+    if(flowControlFromContext == 1){
+      if (m_isFinalBlockNumberDiscovered)
+        m_currentWindowSize = m_finalBlockNumber;
+      if (m_currentWindowSize > maxWindowFromContext)
+        m_currentWindowSize = maxWindowFromContext;
+    }
   }
-
   if (m_currentWindowSize > m_interestsInFlight){
-      controlOutgoingInterests();
+    controlOutgoingInterests();
   }
   else{
-        //send exactly 1 Interest to get the FinalBlockId
-        sendInterest();
+    //send exactly 1 Interest to get the FinalBlockId
+    sendInterest();
   }
-
   bool isAsync = false;
   m_context->getContextOption(ASYNC_MODE, isAsync);
 
@@ -265,93 +262,85 @@ BBRDataRetrieval::onData(const ndn::Interest& interest, const ndn::Data& data)
 void
 BBRDataRetrieval::controlOutgoingInterests()
 {
-    // avoid duplicated pacing process
-    if (m_nowPacing)
-        return;
-    int pacingInterval = 0;
-    m_context->getContextOption(PACING_INTERVAL, pacingInterval);
-    // Do pacing
-    if (pacingInterval != 0)
-    {
-        // totalのinflight数がRWINを超えないか確認.
-        int totalInflight = m_interestsInFlight + m_scheduledInterests.size();
-        if (m_currentWindowSize > totalInflight)
-        {
-        // inflight availability
-        int availability = m_currentWindowSize - totalInflight;
-        if (m_isFinalBlockNumberDiscovered)
-        {
-            if(m_doLogging){
-                std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << ", " << time::steady_clock::now() - getStartTime()
-                << " BBR::onData::availability: " << availability << ", totalInflight:" << totalInflight << ", scheduled: " << m_scheduledInterests.size()
-                << ", m_segNumber: " << m_segNumber << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
-            }
-            if(m_finalBlockNumber >= m_segNumber + m_scheduledInterests.size())
-            {
-                // SendInterest until "m_segNumber == final"
-                // m_segNumber + m_scheduled.size() = nextRequestSegmentNumber
-                // # of interests required for finalBlock = finalBlockNumber - nextRequestSegmentNumber + 1
-                if(availability >= m_finalBlockNumber - m_segNumber - m_scheduledInterests.size() + 1)
-                    paceInterests(m_finalBlockNumber - m_segNumber - m_scheduledInterests.size() + 1, time::milliseconds(pacingInterval));
-                // not enough room for final number
-                else
-                    paceInterests(availability, time::milliseconds(pacingInterval));
-            }
+  // avoid duplicated pacing process
+  if (m_nowPacing)
+    return;
+  int pacingInterval = 0;
+  m_context->getContextOption(PACING_INTERVAL, pacingInterval);
+  // Do pacing
+  if (pacingInterval != 0){
+    // totalのinflight数がRWINを超えないか確認.
+    int totalInflight = m_interestsInFlight + m_scheduledInterests.size();
+    if (m_currentWindowSize > totalInflight){
+      // inflight availability
+      int availability = m_currentWindowSize - totalInflight;
+      if (m_isFinalBlockNumberDiscovered){
+        if(m_doLogging){
+          std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << ", " << time::steady_clock::now() - getStartTime()
+          << " BBR::onData::availability: " << availability << ", totalInflight:" << totalInflight << ", scheduled: " << m_scheduledInterests.size()
+          << ", m_segNumber: " << m_segNumber << ", m_finalBlockNumber: " << m_finalBlockNumber << ", m_currentWindowSize: " << m_currentWindowSize << std::endl;
         }
-        else
-            sendInterest();
+        if(m_finalBlockNumber >= m_segNumber + m_scheduledInterests.size()){
+          // SendInterest until "m_segNumber == final"
+          // m_segNumber + m_scheduled.size() = nextRequestSegmentNumber
+          // # of interests required for finalBlock = finalBlockNumber - nextRequestSegmentNumber + 1
+          if(availability >= m_finalBlockNumber - m_segNumber - m_scheduledInterests.size() + 1)
+            paceInterests(m_finalBlockNumber - m_segNumber - m_scheduledInterests.size() + 1, time::milliseconds(pacingInterval));
+          // not enough room for final number
+          else
+            paceInterests(availability, time::milliseconds(pacingInterval));
         }
+      }
+      else
+        sendInterest();
     }
-    // No pacing
-    else
-    {
-        while (m_currentWindowSize > m_interestsInFlight)
-        {
-            if (m_isFinalBlockNumberDiscovered)
-            {
-                if (m_segNumber <= m_finalBlockNumber)
-                    sendInterest();
-                else
-                    break;
-            }
-            else
-                sendInterest();
-        }
-    } 
+  }
+  // No pacing
+  else{
+    while (m_currentWindowSize > m_interestsInFlight){
+      if (m_isFinalBlockNumberDiscovered){
+        if (m_segNumber <= m_finalBlockNumber)
+          sendInterest();
+        else
+          break;
+      }
+      else
+        sendInterest();
+    }
+  }
 }
-
 
 void
 BBRDataRetrieval::paceInterests(int nInterests, time::milliseconds timeWindow)
 {
-    // 念のため
-    if(m_nowPacing)
-        return;
-    m_nowPacing = true;
-    if (nInterests <= 0)
+  // 念のため
+  if(m_nowPacing)
     return;
+  m_nowPacing = true;
+  if (nInterests <= 0)
+  return;
 
-    // constant interval for each interest
-    time::nanoseconds interval = time::nanoseconds(timeWindow);
-    // constant interval for set of interests
-    // time::nanoseconds interval = time::nanoseconds(1000000 * timeWindow) / nInterests;
+  // constant interval for each interest
+  time::nanoseconds interval = time::nanoseconds(timeWindow);
+  // constant interval for set of interests
+  // time::nanoseconds interval = time::nanoseconds(1000000 * timeWindow) / nInterests;
 
-    if(m_doLogging){
-        std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count()
-        << ", " << time::steady_clock::now() - getStartTime()
-        << " PACE INTEREST FOR " << nInterests << " Interests, Interval:" << interval << std::endl; 
-    }
+  if(m_doLogging){
+    std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count()
+    << ", " << time::steady_clock::now() - getStartTime()
+    << " PACE INTEREST FOR " << nInterests << " Interests, Interval:" << interval << std::endl; 
+  }
 
-    int nextSegment = m_segNumber + m_scheduledInterests.size();
+  int nextSegment = m_segNumber + m_scheduledInterests.size();
 
-    for (int i = 1; i <= nInterests; i++) {
-    if(m_doLogging){
-        std::cout << "Schedule Interests (" << nextSegment << " -> " << nextSegment + nInterests 
-        << ") in total " << i*interval << "ns" << std::endl;
-    }
-    // schedule next Interest
-    m_scheduledInterests[nextSegment + i] = m_scheduler->scheduleEvent(i * interval, bind(&BBRDataRetrieval::sendInterest, this));
-    }
+  for (int i = 1; i <= nInterests; i++) {
+  if(m_doLogging){
+    std::cout << "Schedule Interests (" << nextSegment << " -> " << nextSegment + nInterests 
+    << ") in total " << i*interval << "ns" << std::endl;
+  }
+  // schedule next Interest
+  m_scheduledInterests[nextSegment + i] = m_scheduler->scheduleEvent(i * interval, bind(&BBRDataRetrieval::sendInterest, this));
+  }
 }
 
 void

@@ -826,6 +826,18 @@ Consumer::getContextOption(int optionName, TreeNode& optionValue)
   return OPTION_NOT_FOUND;
 }
 
+Name
+Consumer::getPrefix()
+{
+  return m_prefix;
+}
+
+Name
+Consumer::getSuffix()
+{
+  return m_suffix;
+}
+
 void
 Consumer::onStrategyChangeSuccess(const nfd::ControlParameters& commandSuccessResult)
 {
