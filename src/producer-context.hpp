@@ -128,6 +128,9 @@ public:
   setContextOption(int optionName, int optionValue);
 
   int
+  setContextOption(int optionName, double optionValue);
+
+  int
   setContextOption(int optionName, bool optionValue);
 
   int
@@ -172,6 +175,9 @@ public:
 
   int
   getContextOption(int optionName, int& optionValue);
+
+  int
+  getContextOption(int optionName, double& optionValue);
 
   int
   getContextOption(int optionName, bool& optionValue);

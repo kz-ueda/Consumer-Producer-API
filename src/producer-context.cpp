@@ -680,6 +680,13 @@ Producer::setContextOption(int optionName, int optionValue)
 }
 
 int
+Producer::setContextOption(int optionName, double optionValue)
+{
+  return OPTION_NOT_FOUND;
+}
+
+
+int
 Producer::setContextOption(int optionName, bool optionValue)
 {
   switch (optionName) {
@@ -906,6 +913,13 @@ Producer::getContextOption(int optionName, int& optionValue)
       return OPTION_NOT_FOUND;
   }
 }
+
+int
+Producer::getContextOption(int optionName, double& optionValue)
+{
+  return OPTION_NOT_FOUND;
+}
+
 
 int
 Producer::getContextOption(int optionName, bool& optionValue)
