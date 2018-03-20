@@ -39,7 +39,7 @@ BBRDataRetrieval::BBRDataRetrieval(Context* context, const BBROptions& options)
   // ICN2020
   , m_options(options)
   , m_nowPacing(false)
-  , m_doLogging(false)
+  , m_doLogging(true)
   , m_minRTT(0)
   , m_maxRTT(0)
   , m_ssthresh(m_options.initSsthresh)
@@ -87,19 +87,27 @@ BBRDataRetrieval::start()
   // @ToDo: contextに出すか否かについて整理する
   double windowSizeFromContext = -1;
   m_context->getContextOption(CURRENT_WINDOW_SIZE, windowSizeFromContext);
-  if (windowSizeFromContext > 0){
+  if (windowSizeFromContext > 0)
+  {
     m_currentWindowSize = windowSizeFromContext;
     int maxWindowFromContext = 1;
     m_context->getContextOption(MAX_WINDOW_SIZE, maxWindowFromContext);
     // check flowcontrol protocol to determine first window size.
-    // if flowcontrol is segmentFetcher (1), set window size to final block num.
     int flowControlFromContext = 1;
     m_context->getContextOption(FLOW_CONTROL, flowControlFromContext);
+    if(m_doLogging)
+    {
+      std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << ", " << time::steady_clock::now() - getStartTime()
+      << " BBR::started, flowControlProtocol = " << flowControlFromContext << "currentWindowSize = " << windowSizeFromContext << std::endl; 
+    }
+
+    // if flowcontrol is segmentFetcher (1), set window size to final block num.
     if(flowControlFromContext == 1){
-      if (m_isFinalBlockNumberDiscovered)
+      if (m_isFinalBlockNumberDiscovered){
         m_currentWindowSize = m_finalBlockNumber;
-      if (m_currentWindowSize > maxWindowFromContext)
-        m_currentWindowSize = maxWindowFromContext;
+        if (m_currentWindowSize > maxWindowFromContext)
+          m_currentWindowSize = maxWindowFromContext;
+      }
     }
   }
   if (m_currentWindowSize > m_interestsInFlight){
@@ -207,7 +215,7 @@ BBRDataRetrieval::onData(const ndn::Interest& interest, const ndn::Data& data)
 
     if(m_doLogging){
       std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << ", " << time::steady_clock::now() - getStartTime()
-      << " BBR::onData::RTT = " << duration << ", name = " << data.getName().toUri() << std::endl; 
+      << " BBR::onData::RTT = " << duration << " (min+" << duration - m_minRTT << ", max-" << m_maxRTT - duration << "), name = " << data.getName().toUri() << std::endl; 
     }
     // Update min/max RTT
     double m = static_cast<double>(duration.count());
@@ -334,13 +342,14 @@ BBRDataRetrieval::paceInterests(int nInterests, time::milliseconds timeWindow)
   int nextSegment = m_segNumber + m_scheduledInterests.size();
 
   for (int i = 1; i <= nInterests; i++) {
-  if(m_doLogging){
-    std::cout << "Schedule Interests (" << nextSegment << " -> " << nextSegment + nInterests 
-    << ") in total " << i*interval << "ns" << std::endl;
+    if(m_doLogging){
+      std::cout << "Schedule Interests (" << nextSegment << " -> " << nextSegment + nInterests 
+      << ") in total " << i*interval << "ns" << std::endl;
+    }
+    // schedule next Interest
+    m_scheduledInterests[nextSegment + i] = m_scheduler->scheduleEvent(i * interval, bind(&BBRDataRetrieval::sendInterest, this));
   }
-  // schedule next Interest
-  m_scheduledInterests[nextSegment + i] = m_scheduler->scheduleEvent(i * interval, bind(&BBRDataRetrieval::sendInterest, this));
-  }
+  m_nowPacing = false;
 }
 
 void
