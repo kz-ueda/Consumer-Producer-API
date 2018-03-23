@@ -47,7 +47,6 @@ BBRDataRetrieval::BBRDataRetrieval(Context* context, const BBROptions& options)
 {
   context->getContextOption(FACE, m_face);
   m_scheduler = new Scheduler(m_face->getIoService());
-  m_context->getContextOption(LOGGING, m_doLogging);
 }
 
 BBRDataRetrieval::~BBRDataRetrieval()
@@ -71,6 +70,7 @@ BBRDataRetrieval::start()
   m_receiveBuffer.clear();
   m_unverifiedSegments.clear();
   m_verifiedManifests.clear();
+  m_context->getContextOption(LOGGING, m_doLogging);
 
   // Manifest-based retrieval
   // Import finalBlockNumber from consumer context
@@ -213,12 +213,12 @@ BBRDataRetrieval::onData(const ndn::Interest& interest, const ndn::Data& data)
     m_rttEstimator.addMeasurement(boost::chrono::duration_cast<boost::chrono::microseconds>(duration));
     RttEstimator::Duration rto = m_rttEstimator.computeRto();
 
-    if(m_doLogging){
-      std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << ", " << time::steady_clock::now() - getStartTime()
-      << " BBR::onData::RTT = " << duration << " (min+" << duration - m_minRTT << ", max-" << m_maxRTT - duration << "), name = " << data.getName().toUri() << std::endl; 
-    }
     // Update min/max RTT
     double m = static_cast<double>(duration.count());
+    if(m_doLogging){
+      std::cout << ndn::time::toUnixTimestamp(time::system_clock::now()).count() << ", " << time::steady_clock::now() - getStartTime()
+      << ", BBR::onData::RTT = " << m << ", (diff from min/max: " << m - m_minRTT << ", " << m_maxRTT - m << "), name = " << data.getName().toUri() << ", Mark:" << data.getCongestionMark() << std::endl; 
+    }
     if (m_minRTT == 0 || m_minRTT > m)
       m_minRTT = m;
     if (m_maxRTT < m)
@@ -382,6 +382,8 @@ BBRDataRetrieval::increaseWindow()
       else{
         m_currentWindowSize += m_options.aiStep / std::floor(m_currentWindowSize);
       }
+      if (m_currentWindowSize > maxWindowSize) 
+        m_currentWindowSize = maxWindowSize;
       break;
 
     case 3:
